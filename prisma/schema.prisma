@@ -1,0 +1,109 @@
+// Schema de la base de donnees.
+// SQLite pour le dev (zero configuration). En production, remplacez simplement
+// provider par "postgresql" et DATABASE_URL par votre URL Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Un service vendable : soit une VERIFICATION IMEI, soit un DEBLOCAGE reseau.
+model Service {
+  id            String   @id @default(cuid())
+  slug          String   @unique // ex. "icloud-status", "unlock-att"
+  name          String
+  type          String // "CHECK" | "UNLOCK"
+  category      String // ex. "Apple", "AT&T", "Blacklist"
+  description   String
+  priceCents    Int // prix de vente au client (en centimes)
+  costCents     Int // cout fournisseur estime (sert au calcul de marge)
+  currency      String   @default("EUR")
+  estimatedTime String // ex. "Instantane", "1-24h"
+  dhruServiceId String? // identifiant du service chez le grossiste DHRU
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  orders Order[]
+}
+
+// Un compte revendeur : porte une cle API, un portefeuille prepaye et une marge.
+model Reseller {
+  id                   String   @id @default(cuid())
+  name                 String
+  email                String   @unique
+  apiKey               String   @unique // secret d'acces a l'API
+  balanceCents         Int      @default(0) // portefeuille prepaye
+  resellerMarginPercent Int     @default(30) // marge appliquee sur le cout fournisseur
+  rateLimitPerMin      Int      @default(60) // quota : requetes API par minute
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+
+  orders       Order[]
+  transactions WalletTransaction[]
+}
+
+// Mouvement de portefeuille (audit comptable).
+model WalletTransaction {
+  id              String   @id @default(cuid())
+  resellerId      String
+  reseller        Reseller @relation(fields: [resellerId], references: [id])
+  type            String // "TOPUP" | "DEBIT" | "REFUND" | "ADJUST"
+  amountCents     Int // signe : credit > 0, debit < 0
+  balanceAfterCents Int
+  orderId         String?
+  note            String?
+  createdAt       DateTime @default(now())
+}
+
+// Un compte client grand public (espace de suivi des commandes).
+model Customer {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+
+  // Reinitialisation de mot de passe : on stocke le HASH du token, jamais le token brut.
+  resetTokenHash   String?
+  resetTokenExpiry DateTime?
+
+  orders Order[]
+}
+
+// Une commande passee par un client (web) ou un revendeur (API).
+model Order {
+  id           String   @id @default(cuid())
+  publicId     String   @unique // reference courte montree au client
+  serviceId    String
+  service      Service  @relation(fields: [serviceId], references: [id])
+  serviceName  String // fige le nom au moment de l'achat
+  imei         String
+  email        String
+  status       String   @default("PENDING") // PENDING | PAID | PROCESSING | DELIVERED | FAILED | REFUNDED
+  channel      String   @default("WEB") // "WEB" | "API"
+  priceCents   Int // montant facture (prix retail ou prix revendeur)
+  costCents    Int
+  currency     String   @default("EUR")
+  resultText   String? // code de deblocage ou rapport de verification livre
+  providerRef  String? // reference de la commande chez le fournisseur
+  errorMessage String?
+
+  // References Stripe, renseignees apres paiement (permettent le remboursement).
+  stripeSessionId     String?
+  stripePaymentIntent String?
+
+  // Revendeur a l'origine de la commande (null = commande web grand public).
+  resellerId String?
+  reseller   Reseller? @relation(fields: [resellerId], references: [id])
+
+  // Client connecte a l'origine de la commande (null = commande invitee).
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
