@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { formatMoney } from "@/lib/pricing";
+import { getDisplayCurrency, formatDisplayPrice } from "@/lib/display-currency";
 import { paymentMode } from "@/lib/cinetpay";
 import { currentCustomer } from "@/lib/customer-auth";
 import OrderForm, { ServiceOption } from "../../OrderForm";
@@ -46,12 +46,13 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const service = await prisma.service.findUnique({ where: { slug } });
   if (!service || !service.active) notFound();
 
-  const [related, customer] = await Promise.all([
+  const [related, customer, currency] = await Promise.all([
     prisma.service.findMany({
       where: { active: true, type: service.type, slug: { not: service.slug } },
       take: 3,
     }),
     currentCustomer(),
+    getDisplayCurrency(),
   ]);
 
   const isUnlock = service.type === "UNLOCK";
@@ -59,7 +60,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const option: ServiceOption = {
     slug: service.slug,
     name: service.name,
-    priceLabel: formatMoney(service.priceCents, service.currency),
+    priceLabel: formatDisplayPrice(service.priceCents, currency),
   };
 
   // Donnees structurees (rich results Google).
@@ -101,7 +102,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         <div className="badge">{isUnlock ? "Deblocage reseau" : "Verification IMEI"} · {service.estimatedTime}</div>
         <h1>{service.name}</h1>
         <p>{service.description}</p>
-        <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12 }}>{formatMoney(service.priceCents, service.currency)}</div>
+        <div style={{ fontSize: 28, fontWeight: 800, marginTop: 12 }}>{formatDisplayPrice(service.priceCents, currency)}</div>
       </section>
 
       <OrderForm services={[option]} paymentLive={paymentMode() === "live"} defaultEmail={customer?.email ?? ""} />
@@ -132,7 +133,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                 <div className="type">{r.type === "UNLOCK" ? "Deblocage" : "Verification"}</div>
                 <h3>{r.name}</h3>
                 <div className="desc">{r.description}</div>
-                <div className="foot"><div className="price">{formatMoney(r.priceCents, r.currency)}</div><div className="time">{r.estimatedTime}</div></div>
+                <div className="foot"><div className="price">{formatDisplayPrice(r.priceCents, currency)}</div><div className="time">{r.estimatedTime}</div></div>
               </a>
             ))}
           </div>

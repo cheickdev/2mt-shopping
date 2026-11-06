@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
-import { formatMoney } from "@/lib/pricing";
 import { paymentMode } from "@/lib/cinetpay";
 import { currentCustomer } from "@/lib/customer-auth";
+import { getDisplayCurrency, formatDisplayPrice } from "@/lib/display-currency";
 import OrderForm, { ServiceOption } from "./OrderForm";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +12,13 @@ export default async function Home() {
     orderBy: [{ type: "asc" }, { priceCents: "asc" }],
   });
 
+  // Devise selon le pays du visiteur (Mali -> FCFA, sinon EUR).
+  const currency = await getDisplayCurrency();
+
   const options: ServiceOption[] = services.map((s) => ({
     slug: s.slug,
     name: s.name,
-    priceLabel: formatMoney(s.priceCents, s.currency),
+    priceLabel: formatDisplayPrice(s.priceCents, currency),
   }));
 
   const checks = services.filter((s) => s.type === "CHECK");
@@ -51,7 +54,7 @@ export default async function Home() {
             <h3>{s.name}</h3>
             <div className="desc">{s.description}</div>
             <div className="foot">
-              <div className="price">{formatMoney(s.priceCents, s.currency)}</div>
+              <div className="price">{formatDisplayPrice(s.priceCents, currency)}</div>
               <div className="time">{s.estimatedTime}</div>
             </div>
           </a>
@@ -67,7 +70,7 @@ export default async function Home() {
             <h3>{s.name}</h3>
             <div className="desc">{s.description}</div>
             <div className="foot">
-              <div className="price">{formatMoney(s.priceCents, s.currency)}</div>
+              <div className="price">{formatDisplayPrice(s.priceCents, currency)}</div>
               <div className="time">{s.estimatedTime}</div>
             </div>
           </a>
