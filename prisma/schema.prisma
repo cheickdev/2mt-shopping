@@ -1,13 +1,13 @@
 // Schema de la base de donnees.
-// SQLite pour le dev (zero configuration). En production, remplacez simplement
-// provider par "postgresql" et DATABASE_URL par votre URL Postgres.
+// Production : Postgres (ex. Neon). DATABASE_URL contient l'URL de connexion.
+// Pour revenir a un dev local sans Postgres, repassez provider sur "sqlite".
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
