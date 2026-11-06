@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { productionWarnings } from "@/lib/config";
-import { paymentMode } from "@/lib/stripe";
+import { paymentMode } from "@/lib/cinetpay";
 import { providerMode } from "@/lib/providers/dhru";
 import { emailMode } from "@/lib/email";
 

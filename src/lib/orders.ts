@@ -1,11 +1,11 @@
-// Logique metier des commandes : creation, paiement (Stripe ou simule) et
+// Logique metier des commandes : creation, paiement (CinetPay ou simule) et
 // traitement via le fournisseur. Centralise ici pour etre reutilisee par les
-// routes API (prise de commande, webhook Stripe, confirmation au retour).
+// routes API (prise de commande, notification CinetPay, confirmation au retour).
 
 import { prisma } from "@/lib/db";
 import { validateImei } from "@/lib/imei";
 import { submitOrder } from "@/lib/providers/dhru";
-import { paymentMode, createCheckoutSession } from "@/lib/stripe";
+import { paymentMode, createPayment } from "@/lib/cinetpay";
 import { sendEmail, orderDeliveredEmail, orderFailedEmail } from "@/lib/email";
 
 /** Reference courte et lisible montree au client, ex. "UP-7F3K9Q". */
@@ -20,7 +20,7 @@ export interface CreateOrderInput {
   serviceSlug: string;
   imei: string;
   email: string;
-  origin: string; // origine de la requete, pour les URLs de retour Stripe
+  origin: string; // origine de la requete, pour les URLs de retour du paiement
   customerId?: string | null; // client connecte (null = commande invitee)
 }
 
@@ -65,17 +65,17 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   // 5. Paiement.
   if (paymentMode() === "live") {
-    // On cree une session Stripe Checkout ; le client est redirige dessus.
-    // Le traitement fournisseur n'aura lieu qu'APRES encaissement (webhook /
-    // confirmation au retour), via markOrderPaidAndProcess().
+    // On initialise un paiement CinetPay ; le client est redirige dessus.
+    // Le traitement fournisseur n'aura lieu qu'APRES encaissement (notification
+    // CinetPay / confirmation au retour), via markOrderPaidAndProcess().
     try {
-      const checkoutUrl = await createCheckoutSession({
-        publicId: order.publicId,
-        serviceName: order.serviceName,
-        priceCents: order.priceCents,
-        currency: order.currency,
-        email: order.email,
+      const checkoutUrl = await createPayment({
+        transactionId: order.publicId,
+        amountCents: order.priceCents,
+        description: `Commande ${order.serviceName}`,
+        customerEmail: order.email,
         origin: input.origin,
+        returnPath: `/order/${order.publicId}`,
       });
       return { ok: true, publicId: order.publicId, checkoutUrl };
     } catch (err) {
@@ -97,22 +97,12 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
  * Idempotent : si la commande n'est plus en attente de paiement, on ne fait
  * rien (protege contre un double appel webhook + confirmation au retour).
  */
-export async function markOrderPaidAndProcess(
-  publicId: string,
-  stripe?: { sessionId?: string | null; paymentIntent?: string | null },
-): Promise<void> {
+export async function markOrderPaidAndProcess(publicId: string): Promise<void> {
   const order = await prisma.order.findUnique({ where: { publicId } });
   if (!order) return;
   if (order.status !== "PENDING") return; // deja paye/traite
 
-  await prisma.order.update({
-    where: { id: order.id },
-    data: {
-      status: "PAID",
-      stripeSessionId: stripe?.sessionId ?? order.stripeSessionId,
-      stripePaymentIntent: stripe?.paymentIntent ?? order.stripePaymentIntent,
-    },
-  });
+  await prisma.order.update({ where: { id: order.id }, data: { status: "PAID" } });
   await processOrder(publicId);
 }
 

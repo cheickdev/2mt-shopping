@@ -4,24 +4,24 @@ Plateforme de **vérification IMEI** et de **déblocage réseau par IMEI**, pens
 générer du revenu en ligne sans stock, partout dans le monde.
 
 Le projet tourne **immédiatement en mode simulation** : aucune clé, aucun compte
-fournisseur ni Stripe nécessaire pour tout tester. Vous branchez le réel ensuite.
+fournisseur ni paiement nécessaire pour tout tester. Vous branchez le réel ensuite.
 
 ## Ce qui est inclus (Phase 1)
 
 - Catalogue de services : vérifications IMEI (iCloud/Find My, blacklist, opérateur, rapport complet) et déblocages réseau (iPhone, Samsung, Xiaomi).
 - Validation d'IMEI robuste (longueur + algorithme de Luhn).
 - Prise de commande + page de suivi de statut en temps réel.
-- **Paiement Stripe Checkout** (page de paiement hébergée) + **webhook** qui déclenche le traitement après encaissement, avec repli de confirmation au retour.
+- **Paiement CinetPay** (Mobile Money Orange/Moov + cartes, Afrique de l'Ouest) : page de paiement hébergée + **notification** serveur-à-serveur qui déclenche le traitement après encaissement, avec repli de confirmation au retour. Les prix sont en EUR et convertis en FCFA (XOF) au paiement (parité fixe).
 - Connecteur fournisseur **DHRU Fusion** avec deux modes : `simulation` et `live`.
 - Gestion des prix et des marges (prix de vente vs coût fournisseur).
-- **Back-office admin** (`/admin`) : tableau de bord (CA, marge, commandes), édition des services (prix/marges/délais/disponibilité), création de services, gestion des commandes (relance d'un échec, remboursement — réel via Stripe si disponible).
+- **Back-office admin** (`/admin`) : tableau de bord (CA, marge, commandes), édition des services (prix/marges/délais/disponibilité), création de services, gestion des commandes (relance d'un échec, passage en remboursé).
 - **Tier revendeurs + API publique** (revenus récurrents) : comptes revendeurs avec **portefeuille prépayé**, **clé API**, tableau de bord (`/reseller`), et **API REST v1** facturée à l'usage (chaque commande débite le portefeuille au prix revendeur = coût + votre marge ; remboursement automatique si le fournisseur échoue).
 - **Espace client grand public** (`/account`) : inscription / connexion (email + mot de passe haché scrypt), **réinitialisation de mot de passe** (lien par email, token haché, expiration 1 h), historique des commandes avec statut et résultats. Les commandes web passées en étant connecté sont rattachées au compte ; l'email est pré-rempli.
 - **SEO** : pages dédiées par service (`/services/[slug]`) avec métadonnées (title, description, OpenGraph, canonical), **données structurées JSON-LD** (Service + FAQ pour les *rich results* Google), `sitemap.xml` et `robots.txt` générés automatiquement.
 - **Emails transactionnels** : bienvenue à l'inscription, résultat de commande (code de déblocage / rapport, ou échec), réinitialisation de mot de passe. Via **Resend** si configuré, sinon simulé (journalisé en console).
 
 Deux interrupteurs **indépendants**, chacun piloté par la simple présence d'une clé :
-- **Paiement** : sans `STRIPE_SECRET_KEY` → simulé (commande payée instantanément) ; avec la clé → vrai Stripe Checkout.
+- **Paiement** : sans identifiants CinetPay → simulé (commande payée instantanément) ; avec `CINETPAY_API_KEY` + `CINETPAY_SITE_ID` → vrai paiement CinetPay.
 - **Fournisseur** : `PROVIDER_MODE=simulation` → résultats fabriqués ; `live` → API DHRU réelle.
 
 ## Prérequis
@@ -44,7 +44,7 @@ résultat est généré instantanément.
 
 ## Passer en production
 
-> **Guide complet pas à pas : [DEPLOYMENT.md](DEPLOYMENT.md)** (Vercel + Postgres + Stripe + DHRU + Resend).
+> **Guide complet pas à pas : [DEPLOYMENT.md](DEPLOYMENT.md)** (Vercel + Postgres + CinetPay + DHRU + Resend).
 > Variables de production : [`.env.production.example`](.env.production.example).
 > Après déploiement, vérifiez l'état via **`GET /api/health`** (`productionReady: true` = tout est branché).
 > En production, aucun mot de passe admin par défaut : définissez `ADMIN_PASSWORD` et des secrets de session uniques.
@@ -57,25 +57,15 @@ Résumé des branchements :
    **DHRU Fusion**. Dans `.env` : `PROVIDER_MODE="live"`, puis `DHRU_API_URL`,
    `DHRU_USERNAME`, `DHRU_API_KEY`. Renseignez le `dhruServiceId` de chaque service
    (dans le seed ou via le futur back-office).
-3. **Paiement (Stripe)** : créez un compte Stripe et récupérez vos clés de **test**.
-   Dans `.env` : `STRIPE_SECRET_KEY="sk_test_..."` et
-   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."`. Dès que `STRIPE_SECRET_KEY` est
-   présente, la prise de commande redirige vers Stripe Checkout.
+3. **Paiement (CinetPay)** : créez un compte marchand CinetPay (Mobile Money
+   Orange/Moov + cartes). Dans `.env` : `CINETPAY_API_KEY` et `CINETPAY_SITE_ID`.
+   Dès que les deux sont présents, la prise de commande redirige vers la page de
+   paiement CinetPay. Les prix (en EUR) sont convertis en FCFA (XOF) au paiement.
 
-   **Webhook** (indispensable en production — c'est lui qui déclenche le traitement
-   après paiement). En développement local, utilisez la Stripe CLI :
-
-   ```bash
-   stripe listen --forward-to localhost:3000/api/stripe/webhook
-   ```
-
-   Copiez le secret `whsec_...` affiché dans `STRIPE_WEBHOOK_SECRET`. En production,
-   déclarez l'endpoint `https://votre-domaine/api/stripe/webhook` dans le dashboard
-   Stripe sur l'événement `checkout.session.completed`.
-
-   > Carte de test Stripe : `4242 4242 4242 4242`, date future, CVC quelconque.
-   > Même sans webhook configuré, la page de suivi confirme le paiement au retour
-   > (repli via `session_id`), mais le webhook reste la source de vérité à garder en prod.
+   **Notification** (`notify_url`, indispensable en production — c'est elle qui
+   déclenche le traitement après encaissement) : déclarez dans votre compte CinetPay
+   l'URL `https://votre-domaine/api/cinetpay/notify`. Au retour du client, la page de
+   suivi reconfirme aussi le paiement (repli via `/api/order/confirm?order=...`).
 
 ## Back-office admin
 
@@ -84,7 +74,7 @@ définissez `ADMIN_PASSWORD` et `ADMIN_SESSION_SECRET` en production).
 
 - **Tableau de bord** : chiffre d'affaires, marge, nombre de commandes, livrées, échecs, remboursées, et les modes actifs (paiement / fournisseur).
 - **Services** : ajuster prix, coût (→ marge recalculée en direct), délai, identifiant fournisseur (`dhruServiceId`) et activer/désactiver ; créer de nouveaux services.
-- **Commandes** : voir le détail (résultat livré / erreur), **relancer** une commande en échec, **rembourser** (remboursement Stripe réel si un paiement est associé, sinon simple passage en `REFUNDED`).
+- **Commandes** : voir le détail (résultat livré / erreur), **relancer** une commande en échec, **rembourser** (passage en `REFUNDED` ; le remboursement effectif Mobile Money/carte se fait côté CinetPay).
 
 ## Revendeurs & API publique (revenus récurrents)
 
@@ -97,7 +87,7 @@ Chaque appel débite leur solde au **prix revendeur** = coût fournisseur + votr
 API s'affiche **une seule fois** ; communiquez-la au revendeur.
 
 **Tableau de bord revendeur** : `http://localhost:3000/reseller` → connexion avec la clé API.
-Solde, recharge (Stripe en prod, crédit immédiat en simulation), clé API, historique,
+Solde, recharge (crédit immédiat en simulation ; en prod, crédit par l'admin pour l'instant), clé API, historique,
 mouvements de portefeuille.
 
 **Documentation** : page publique **`/api-docs`** (endpoints, exemples, quotas, codes d'erreur).
@@ -131,12 +121,12 @@ prisma/seed.ts            Services de demonstration
 src/lib/imei.ts           Validation IMEI (Luhn)
 src/lib/pricing.ts        Formatage prix + marges
 src/lib/providers/dhru.ts Connecteur fournisseur (simulation / live)
-src/lib/stripe.ts         Integration Stripe + session Checkout
+src/lib/cinetpay.ts       Integration CinetPay (init paiement + verification)
 src/lib/orders.ts         Logique metier des commandes (paiement + traitement)
 src/app/api/order         POST : creer une commande (-> Checkout en live)
-src/app/api/order/confirm GET  : confirmer le paiement au retour de Stripe
+src/app/api/order/confirm GET  : confirmer le paiement au retour de CinetPay
 src/app/api/orders/[id]   GET  : statut d'une commande
-src/app/api/stripe/webhook POST : webhook Stripe (checkout.session.completed)
+src/app/api/cinetpay/notify POST : notification CinetPay (paiement confirme)
 src/lib/admin-auth.ts     Auth admin (mot de passe + cookie HMAC)
 src/lib/reseller-auth.ts  Auth revendeur (cle API + cookie de session)
 src/app/admin             Back-office (dashboard, services, commandes, revendeurs)

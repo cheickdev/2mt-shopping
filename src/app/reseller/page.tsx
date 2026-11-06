@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { currentReseller } from "@/lib/reseller-auth";
 import { formatMoney } from "@/lib/pricing";
-import { paymentMode } from "@/lib/stripe";
+import { paymentMode } from "@/lib/cinetpay";
 import { LogoutButton, CopyKey, TopUp } from "./ResellerActions";
 
 export const dynamic = "force-dynamic";

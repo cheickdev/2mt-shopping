@@ -24,7 +24,6 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const { id } = use(params);
   const [order, setOrder] = useState<OrderView | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [canceled, setCanceled] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -47,16 +46,12 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
       }
     }
     async function begin() {
-      // Au retour de Stripe Checkout : confirmer le paiement avant de suivre.
-      const sp = new URLSearchParams(window.location.search);
-      if (sp.get("canceled")) setCanceled(true);
-      const sessionId = sp.get("session_id");
-      if (sessionId) {
-        try {
-          await fetch(`/api/order/confirm?session_id=${encodeURIComponent(sessionId)}`);
-        } catch {
-          // Le webhook finalisera de toute facon ; le polling suivra.
-        }
+      // Au retour du paiement CinetPay : on verifie le statut avant de suivre.
+      // (La notification serveur-a-serveur finalise de toute facon ; le polling suit.)
+      try {
+        await fetch(`/api/order/confirm?order=${encodeURIComponent(id)}`);
+      } catch {
+        // ignore : le polling ci-dessous prendra le relais
       }
       load();
     }
@@ -71,12 +66,6 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
     <main style={{ padding: "48px 0", maxWidth: 640, margin: "0 auto" }}>
       <a href="/">← Nouvelle commande</a>
       <h1 style={{ marginTop: 16 }}>Suivi de commande</h1>
-
-      {canceled && (
-        <div className="card" style={{ marginTop: 16 }}>
-          Paiement annule. Vous pouvez relancer la commande depuis l&apos;accueil.
-        </div>
-      )}
 
       {error && <div className="card error">{error}</div>}
 

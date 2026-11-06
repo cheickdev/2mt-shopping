@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { currentReseller } from "@/lib/reseller-auth";
-import { paymentMode, createTopupSession } from "@/lib/stripe";
+import { paymentMode } from "@/lib/cinetpay";
 import { topupWallet } from "@/lib/orders";
 
 const schema = z.object({ amountCents: z.number().int().positive().max(1_000_000) });
 
-// Recharge le portefeuille. En mode Stripe : redirige vers Checkout (le credit
-// est applique par le webhook apres paiement). En simulation : credite direct.
+// Recharge du portefeuille revendeur.
+//   - Simulation (pas de cles CinetPay) : credit immediat, pour le dev/test.
+//   - Live : la recharge en ligne en self-service n'est pas encore branchee ;
+//     l'administrateur credite le solde manuellement depuis le back-office
+//     (Revendeurs -> Ajuster solde). A implementer via CinetPay ulterieurement.
 export async function POST(req: Request) {
   const reseller = await currentReseller();
   if (!reseller) {
@@ -26,18 +29,10 @@ export async function POST(req: Request) {
   }
 
   if (paymentMode() === "live") {
-    const origin = req.headers.get("origin") ?? new URL(req.url).origin;
-    try {
-      const checkoutUrl = await createTopupSession({
-        resellerId: reseller.id,
-        amountCents: parsed.data.amountCents,
-        email: reseller.email,
-        origin,
-      });
-      return NextResponse.json({ ok: true, checkoutUrl });
-    } catch (err) {
-      return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 400 });
-    }
+    return NextResponse.json(
+      { ok: false, error: "La recharge en ligne arrive bientot. Contactez l'administrateur pour crediter votre compte." },
+      { status: 503 },
+    );
   }
 
   // Simulation : credit immediat.

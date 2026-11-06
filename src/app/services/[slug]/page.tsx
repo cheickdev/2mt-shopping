@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/pricing";
-import { paymentMode } from "@/lib/stripe";
+import { paymentMode } from "@/lib/cinetpay";
 import { currentCustomer } from "@/lib/customer-auth";
 import OrderForm, { ServiceOption } from "../../OrderForm";
 

@@ -27,8 +27,8 @@ export function productionWarnings(): string[] {
   if (insecure(process.env.CUSTOMER_SESSION_SECRET) && insecure(process.env.ADMIN_SESSION_SECRET))
     w.push("CUSTOMER_SESSION_SECRET absent ou par defaut.");
 
-  if (!process.env.STRIPE_SECRET_KEY) w.push("STRIPE_SECRET_KEY absent : les paiements sont simules.");
-  else if (!process.env.STRIPE_WEBHOOK_SECRET) w.push("STRIPE_WEBHOOK_SECRET absent : le webhook ne pourra pas valider les paiements.");
+  if (!process.env.CINETPAY_API_KEY || !process.env.CINETPAY_SITE_ID)
+    w.push("CinetPay non configure (CINETPAY_API_KEY / CINETPAY_SITE_ID) : les paiements sont simules.");
 
   if (process.env.PROVIDER_MODE !== "live") w.push("PROVIDER_MODE n'est pas 'live' : le fournisseur est simule.");
   if (!process.env.RESEND_API_KEY) w.push("RESEND_API_KEY absent : les emails sont simules.");

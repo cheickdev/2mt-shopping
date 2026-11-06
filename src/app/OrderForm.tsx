@@ -40,7 +40,7 @@ export default function OrderForm({
         setError(data.error ?? "Une erreur est survenue.");
         return;
       }
-      // Mode paiement live : Stripe renvoie une URL de paiement -> on y redirige.
+      // Mode paiement live : le prestataire renvoie une URL de paiement -> on y redirige.
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
         return;
@@ -96,7 +96,7 @@ export default function OrderForm({
       {error && <div className="error">{error}</div>}
       <div className="note">
         {paymentLive
-          ? "Vous serez redirige vers le paiement securise Stripe."
+          ? "Paiement securise : Mobile Money (Orange, Moov) ou carte bancaire."
           : "Mode simulation : commande traitee instantanement, sans paiement reel."}
       </div>
     </form>

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Champs manquants." }, { status: 400 });
   }
 
-  // Origine pour construire les URLs de retour Stripe.
+  // Origine pour construire les URLs de retour du paiement.
   const origin =
     req.headers.get("origin") ?? new URL(req.url).origin;
 

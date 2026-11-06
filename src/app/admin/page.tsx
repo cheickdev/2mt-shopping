@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { formatMoney } from "@/lib/pricing";
-import { paymentMode } from "@/lib/stripe";
+import { paymentMode } from "@/lib/cinetpay";
 import { providerMode } from "@/lib/providers/dhru";
 import AdminShell from "./AdminShell";
 
@@ -43,7 +43,7 @@ export default async function AdminDashboard() {
 
       <div className="mode-row">
         <span className={`mode-pill ${paymentMode() === "live" ? "on" : "off"}`}>
-          Paiement : {paymentMode() === "live" ? "Stripe (live)" : "simulation"}
+          Paiement : {paymentMode() === "live" ? "CinetPay (live)" : "simulation"}
         </span>
         <span className={`mode-pill ${providerMode() === "live" ? "on" : "off"}`}>
           Fournisseur : {providerMode() === "live" ? "DHRU (live)" : "simulation"}

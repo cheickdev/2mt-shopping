@@ -12,7 +12,7 @@ Comptez environ 1 h la première fois. Vérifiez l'état à tout moment via `GET
 | **GitHub** | Héberger le code | Gratuit |
 | **Vercel** | Héberger l'application | Gratuit → ~20 $/mo |
 | **Postgres** (Neon / Supabase / Vercel Postgres) | Base de données | Gratuit → ~25 $/mo |
-| **Stripe** | Encaisser les paiements | Commission par transaction |
+| **CinetPay** | Encaisser les paiements (Mobile Money + cartes) | Commission par transaction |
 | **Grossiste DHRU** | Fournir codes & vérifications | Solde prépayé |
 | **Resend** | Emails transactionnels | Gratuit → payant au volume |
 
@@ -40,15 +40,19 @@ Comptez environ 1 h la première fois. Vérifiez l'état à tout moment via `GET
 
 ---
 
-## 2. Stripe (paiements)
+## 2. CinetPay (paiements : Mobile Money + cartes)
 
-1. Dans le dashboard Stripe, récupérez vos clés **live** (`sk_live_...`, `pk_live_...`).
-2. Créez un **webhook** : Developers → Webhooks → Add endpoint
-   - URL : `https://votre-domaine.com/api/stripe/webhook`
-   - Événement : `checkout.session.completed`
-   - Copiez le **Signing secret** (`whsec_...`) → variable `STRIPE_WEBHOOK_SECRET`.
-3. Le webhook est la **source de vérité** : il déclenche le traitement des commandes
-   et crédite les recharges de portefeuille revendeur après paiement.
+1. Créez un **compte marchand CinetPay** (l'ouverture peut demander des documents
+   d'entreprise : RCCM, RIB). Récupérez `CINETPAY_API_KEY` et `CINETPAY_SITE_ID`.
+2. Dans votre compte CinetPay, déclarez l'**URL de notification** (`notify_url`) :
+   `https://votre-domaine.com/api/cinetpay/notify`
+3. Cette notification est la **source de vérité** : à sa réception, l'app reinterroge
+   CinetPay (`/v2/payment/check`) puis déclenche le traitement de la commande. Au
+   retour du client, la page de suivi reconfirme aussi le paiement (repli).
+
+> Devise : CinetPay facture en **FCFA (XOF)**. Les prix (en EUR) sont convertis
+> automatiquement (1 EUR = 655,957 XOF). Pour un affichage en FCFA avec des prix
+> ronds, ajustez les tarifs depuis le back-office.
 
 ---
 

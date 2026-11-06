@@ -87,7 +87,7 @@ export function TopUp({ paymentLive }: { paymentLive: boolean }) {
         </button>
       </div>
       <div className="note" style={{ textAlign: "left", marginTop: 8 }}>
-        {paymentLive ? "Paiement securise Stripe." : "Mode simulation : credit immediat, sans paiement reel."}
+        {paymentLive ? "Recharge en ligne bientot disponible ; sinon contactez l'administrateur." : "Mode simulation : credit immediat, sans paiement reel."}
       </div>
       {msg && <div className="error">{msg}</div>}
     </div>

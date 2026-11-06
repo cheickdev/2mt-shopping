@@ -1,37 +1,37 @@
 import { NextResponse } from "next/server";
-import { getStripe } from "@/lib/stripe";
+import { prisma } from "@/lib/db";
+import { paymentMode, verifyPayment } from "@/lib/cinetpay";
 import { markOrderPaidAndProcess } from "@/lib/orders";
 
-// Confirmation au retour de Stripe Checkout.
-// Appelee par la page de suivi avec le session_id present dans success_url.
-// Sert de repli robuste quand le webhook n'est pas encore configure (ex. en
-// developpement local sans Stripe CLI). Idempotente cote markOrderPaidAndProcess.
+// Confirmation au retour du paiement CinetPay.
+// Appelee par la page de suivi avec ?order=<reference>. Verifie le statut reel
+// aupres de CinetPay et, si paye, lance le traitement. Idempotent.
+// Sert de repli a la notification serveur-a-serveur (notify).
 export async function GET(req: Request) {
-  const stripe = getStripe();
-  if (!stripe) {
-    return NextResponse.json({ ok: false, error: "Stripe non configure." }, { status: 400 });
+  const publicId = new URL(req.url).searchParams.get("order");
+  if (!publicId) {
+    return NextResponse.json({ ok: false, error: "Reference manquante." }, { status: 400 });
   }
 
-  const sessionId = new URL(req.url).searchParams.get("session_id");
-  if (!sessionId) {
-    return NextResponse.json({ ok: false, error: "session_id manquant." }, { status: 400 });
+  const order = await prisma.order.findUnique({ where: { publicId } });
+  if (!order) {
+    return NextResponse.json({ ok: false, error: "Commande introuvable." }, { status: 404 });
   }
 
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    const publicId = session.metadata?.publicId;
-    if (publicId && session.payment_status === "paid") {
-      await markOrderPaidAndProcess(publicId, {
-        sessionId: session.id,
-        paymentIntent: typeof session.payment_intent === "string" ? session.payment_intent : null,
-      });
-      return NextResponse.json({ ok: true });
-    }
-    return NextResponse.json({ ok: false, error: "Paiement non confirme." }, { status: 402 });
-  } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: `Verification du paiement echouee : ${(err as Error).message}` },
-      { status: 400 },
-    );
+  // Deja traitee (par la notification, ou en simulation) : rien a faire.
+  if (order.status !== "PENDING") {
+    return NextResponse.json({ ok: true, status: order.status });
   }
+
+  // En simulation, la commande est traitee a la creation : rien a verifier ici.
+  if (paymentMode() !== "live") {
+    return NextResponse.json({ ok: true, status: order.status });
+  }
+
+  const { paid } = await verifyPayment(publicId);
+  if (paid) {
+    await markOrderPaidAndProcess(publicId);
+    return NextResponse.json({ ok: true, status: "PAID" });
+  }
+  return NextResponse.json({ ok: false, pending: true, error: "Paiement non confirme pour l'instant." }, { status: 202 });
 }
