@@ -159,6 +159,100 @@ async function callDhru(params: SubmitParams): Promise<ProviderResult> {
   }
 }
 
+// ============================================================================
+// CATALOGUE FOURNISSEUR (action imeiservicelist)
+// ============================================================================
+// Recupere la liste des services proposes par le grossiste, avec leur
+// identifiant (a reporter dans "ID fournisseur"), leur nom et leur cout en
+// credits. Sert a construire/mapper le catalogue depuis l'admin, sans jamais
+// exposer la cle API au navigateur.
+
+export interface ProviderService {
+  id: string;
+  name: string;
+  credit: string; // cout chez le fournisseur, dans SA devise (credits/USD)
+  time: string;
+  group: string;
+}
+
+export interface ProviderCatalogResult {
+  ok: boolean;
+  services?: ProviderService[];
+  error?: string;
+}
+
+// Les reponses DHRU Fusion imbriquent les services par groupe, sous des cles
+// variables. On aplatit ce que l'on trouve, quelle que soit la forme exacte.
+function flattenServiceList(list: any): ProviderService[] {
+  const out: ProviderService[] = [];
+  if (!list || typeof list !== "object") return out;
+
+  for (const [groupName, group] of Object.entries<any>(list)) {
+    const services = group?.SERVICES ?? group?.services ?? group;
+    if (!services || typeof services !== "object") continue;
+
+    for (const svc of Object.values<any>(services)) {
+      if (!svc || typeof svc !== "object") continue;
+      const id = svc.SERVICEID ?? svc.ID ?? svc.serviceid ?? svc.id;
+      if (id === undefined || id === null) continue;
+      out.push({
+        id: String(id),
+        name: String(svc.SERVICENAME ?? svc.NAME ?? svc.servicename ?? ""),
+        credit: String(svc.CREDIT ?? svc.credit ?? svc.PRICE ?? ""),
+        time: String(svc.TIME ?? svc.time ?? ""),
+        group: String(group?.GROUPNAME ?? groupName),
+      });
+    }
+  }
+  return out;
+}
+
+export async function listImeiServices(): Promise<ProviderCatalogResult> {
+  if (mode() !== "live") {
+    return { ok: false, error: "Le mode fournisseur est en simulation (PROVIDER_MODE n'est pas \"live\")." };
+  }
+
+  const url = process.env.DHRU_API_URL;
+  const username = process.env.DHRU_USERNAME;
+  const apiKey = process.env.DHRU_API_KEY;
+  if (!url || !username || !apiKey) {
+    return { ok: false, error: "Identifiants DHRU manquants (DHRU_API_URL / DHRU_USERNAME / DHRU_API_KEY)." };
+  }
+
+  const body = new URLSearchParams({
+    username,
+    apiaccesskey: apiKey,
+    action: "imeiservicelist",
+    requestformat: "JSON",
+  });
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    const data: any = await res.json();
+
+    if (data?.ERROR) {
+      const msg = Array.isArray(data.ERROR)
+        ? data.ERROR[0]?.MESSAGE ?? "Erreur fournisseur."
+        : String(data.ERROR);
+      return { ok: false, error: msg };
+    }
+
+    const success = Array.isArray(data?.SUCCESS) ? data.SUCCESS[0] : data?.SUCCESS;
+    const list = success?.LIST ?? success?.list ?? success;
+    const services = flattenServiceList(list);
+    if (services.length === 0) {
+      return { ok: false, error: "Reponse recue mais aucun service n'a pu etre lu (format inattendu)." };
+    }
+    return { ok: true, services };
+  } catch (err) {
+    return { ok: false, error: `Appel fournisseur echoue : ${(err as Error).message}` };
+  }
+}
+
 // --- Point d'entree unique ---------------------------------------------------
 export async function submitOrder(params: SubmitParams): Promise<ProviderResult> {
   return mode() === "live" ? callDhru(params) : simulate(params);
