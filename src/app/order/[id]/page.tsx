@@ -38,8 +38,10 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
         }
         setOrder(data.order);
         // Continue de rafraichir tant que la commande n'est pas finalisee.
+        // (Le serveur interroge le fournisseur pour les commandes non instantanees ;
+        // on espace les appels a 6 s pour ne pas le solliciter inutilement.)
         if (data.order.status !== "DELIVERED" && data.order.status !== "FAILED") {
-          setTimeout(load, 2500);
+          setTimeout(load, 6000);
         }
       } catch {
         if (active) setError("Impossible de contacter le serveur.");

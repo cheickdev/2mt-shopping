@@ -160,6 +160,75 @@ async function callDhru(params: SubmitParams): Promise<ProviderResult> {
 }
 
 // ============================================================================
+// RECUPERATION DU RESULTAT (action getimeiorder)
+// ============================================================================
+// Pour les services non instantanes, placeimeiorder renvoie d'abord un
+// REFERENCEID sans resultat (statut PROCESSING). On interroge ensuite l'etat
+// de cette commande deja passee -> AUCUN credit supplementaire n'est debite.
+async function fetchDhruResult(referenceId: string): Promise<ProviderResult> {
+  const url = process.env.DHRU_API_URL;
+  const username = process.env.DHRU_USERNAME;
+  const apiKey = process.env.DHRU_API_KEY;
+  if (!url || !username || !apiKey) {
+    return { status: "FAILED", errorMessage: "Identifiants DHRU manquants." };
+  }
+
+  const body = new URLSearchParams({
+    username,
+    apiaccesskey: apiKey,
+    action: "getimeiorder",
+    requestformat: "JSON",
+    parameters: JSON.stringify({ ID: referenceId }),
+  });
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    const data: any = await res.json();
+
+    if (data?.ERROR) {
+      const msg = Array.isArray(data.ERROR)
+        ? data.ERROR[0]?.MESSAGE ?? "Erreur fournisseur."
+        : String(data.ERROR);
+      return { status: "FAILED", providerRef: referenceId, errorMessage: msg };
+    }
+
+    const success = Array.isArray(data?.SUCCESS) ? data.SUCCESS[0] : data?.SUCCESS;
+    const code = success?.CODE ?? success?.REPLY ?? success?.code;
+    const statusRaw = String(success?.STATUS ?? success?.status ?? "").toLowerCase();
+
+    // Un resultat est present -> livre.
+    if (code && String(code).trim() !== "") {
+      return { status: "DELIVERED", providerRef: referenceId, resultText: String(code) };
+    }
+    // Statuts d'echec connus.
+    if (/reject|cancel|fail|refus|error/.test(statusRaw)) {
+      return {
+        status: "FAILED",
+        providerRef: referenceId,
+        errorMessage: success?.MESSAGE ? String(success.MESSAGE) : "Commande rejetee par le fournisseur.",
+      };
+    }
+    // Sinon : toujours en cours.
+    return { status: "PROCESSING", providerRef: referenceId };
+  } catch (err) {
+    return { status: "PROCESSING", providerRef: referenceId, errorMessage: (err as Error).message };
+  }
+}
+
+/** Interroge l'etat d'une commande deja passee (ne debite pas de credit). */
+export async function fetchOrderResult(referenceId: string): Promise<ProviderResult> {
+  if (mode() !== "live") {
+    // En simulation, tout est deja livre : rien a rechercher.
+    return { status: "DELIVERED", providerRef: referenceId };
+  }
+  return fetchDhruResult(referenceId);
+}
+
+// ============================================================================
 // CATALOGUE FOURNISSEUR (action imeiservicelist)
 // ============================================================================
 // Recupere la liste des services proposes par le grossiste, avec leur

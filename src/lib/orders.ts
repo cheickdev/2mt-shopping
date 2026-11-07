@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/db";
 import { validateImei } from "@/lib/imei";
-import { submitOrder } from "@/lib/providers/dhru";
+import { submitOrder, fetchOrderResult } from "@/lib/providers/dhru";
 import { paymentMode, createPayment } from "@/lib/cinetpay";
 import { sendEmail, orderDeliveredEmail, orderFailedEmail } from "@/lib/email";
 
@@ -157,6 +157,61 @@ export async function processOrder(publicId: string): Promise<void> {
       await sendEmail({ ...email, to: order.email });
     }
   }
+}
+
+/**
+ * Rafraichit une commande EN COURS en interrogeant le fournisseur sur une
+ * commande DEJA passee (via son providerRef). Ne repasse jamais la commande,
+ * donc ne debite aucun credit supplementaire. A utiliser pour les services
+ * non instantanes et pour le bouton "relancer" quand un ref existe deja.
+ * Rembourse automatiquement un revendeur si la commande finit en echec.
+ */
+export async function refreshOrder(publicId: string): Promise<string> {
+  const order = await prisma.order.findUnique({ where: { publicId } });
+  if (!order) return "NOT_FOUND";
+
+  // Rien a rafraichir si ce n'est pas en cours, ou si aucune ref fournisseur.
+  if (order.status !== "PROCESSING" || !order.providerRef) return order.status;
+
+  const result = await fetchOrderResult(order.providerRef);
+
+  if (result.status === "DELIVERED") {
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: "DELIVERED", resultText: result.resultText, providerRef: result.providerRef ?? order.providerRef },
+    });
+    if (order.channel === "WEB") {
+      const email = orderDeliveredEmail({
+        publicId: order.publicId,
+        serviceName: order.serviceName,
+        imei: order.imei,
+        resultText: result.resultText ?? null,
+      });
+      await sendEmail({ ...email, to: order.email });
+    }
+    return "DELIVERED";
+  }
+
+  if (result.status === "FAILED") {
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: "FAILED", errorMessage: result.errorMessage },
+    });
+    if (order.channel === "WEB") {
+      const email = orderFailedEmail({
+        publicId: order.publicId,
+        serviceName: order.serviceName,
+        imei: order.imei,
+      });
+      await sendEmail({ ...email, to: order.email });
+    } else if (order.channel === "API" && order.resellerId) {
+      // Le revendeur a ete debite a la commande : on le rembourse.
+      await topupWallet(order.resellerId, order.priceCents, "REFUND", "Echec fournisseur : remboursement", order.id);
+    }
+    return "FAILED";
+  }
+
+  return "PROCESSING";
 }
 
 // ============================================================================
