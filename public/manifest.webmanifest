@@ -1,0 +1,13 @@
+{
+  "name": "2MT - Shopping",
+  "short_name": "2MT",
+  "description": "Chaussures et cosmetiques livres a Bamako. Payez a la livraison.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbf7f6",
+  "theme_color": "#b11f5c",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

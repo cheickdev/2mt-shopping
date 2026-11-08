@@ -1,0 +1,76 @@
+// Base de donnees de 2MT - Shopping.
+// Dev local : SQLite (aucun service externe). Production : on bascule sur
+// Postgres (Neon) en changeant "provider" + DATABASE_URL, comme pour UnlockPro.
+//
+// Les montants sont stockes en FRANCS CFA ENTIERS (le FCFA n'a pas de centimes).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Un article de la boutique (chaussure ou cosmetique).
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  category    String // "CHAUSSURES" | "COSMETIQUES"
+  description String   @default("")
+  price       Int // prix de vente en FCFA
+  cost        Int      @default(0) // cout d'achat en FCFA (sert au calcul de marge)
+  stock       Int      @default(0)
+  sizes       String   @default("") // variantes separees par virgule : "38,39,40" ou "Rouge,Noir"
+  imageData   String? // photo en Data URL (base64) — suffisant pour la V1
+  active      Boolean  @default(true)
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  items OrderItem[]
+}
+
+// Une commande passee par un client depuis la boutique.
+model Order {
+  id            String   @id @default(cuid())
+  publicId      String   @unique // reference courte montree au client (ex. 2MT-7F3K9Q)
+  customerName  String
+  customerPhone String
+  quartier      String // zone de livraison a Bamako
+  note          String   @default("")
+  status        String   @default("NOUVELLE") // NOUVELLE | CONFIRMEE | EN_LIVRAISON | LIVREE | ANNULEE
+  paymentMethod String   @default("LIVRAISON") // LIVRAISON (paiement a la livraison) ; MOBILE_MONEY plus tard
+  itemsTotal    Int // somme des articles (FCFA)
+  deliveryFee   Int      @default(0) // frais de livraison (FCFA)
+  total         Int // itemsTotal + deliveryFee
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items OrderItem[]
+}
+
+// Une ligne de commande (un article x une quantite). On fige le nom et le prix.
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+  name      String
+  price     Int // prix unitaire fige (FCFA)
+  cost      Int      @default(0) // cout unitaire fige (FCFA), pour le calcul de marge
+  quantity  Int
+  variant   String   @default("") // pointure / couleur choisie
+}
+
+// Parametres de la boutique (une seule ligne, id = "main").
+model Setting {
+  id             String @id @default("main")
+  shopName       String @default("2MT - Shopping")
+  whatsapp       String @default("") // numero WhatsApp des commandes (format international, ex. 223XXXXXXXX)
+  deliveryFee    Int    @default(1000) // frais de livraison Bamako par defaut (FCFA)
+  partnerAPct    Int    @default(60) // part de l'associe principal (%)
+  adBudget       Int    @default(0) // depenses pub du mois (FCFA), pour le calcul du benefice net
+}
