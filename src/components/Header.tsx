@@ -2,7 +2,7 @@
 
 import { useCart } from "@/components/cart";
 
-export default function Header({ shopName }: { shopName: string }) {
+export default function Header({ shopName, categories = [] }: { shopName: string; categories?: string[] }) {
   const { count } = useCart();
   const [first, ...rest] = shopName.split(" ");
   return (
@@ -12,8 +12,9 @@ export default function Header({ shopName }: { shopName: string }) {
           <b>{first}</b> <span className="tag">{rest.join(" ")}</span>
         </a>
         <nav className="nav-actions">
-          <a href="/?cat=CHAUSSURES">Chaussures</a>
-          <a href="/?cat=COSMETIQUES">Cosmétiques</a>
+          {categories.slice(0, 4).map((c) => (
+            <a key={c} href={`/?cat=${encodeURIComponent(c)}`}>{c}</a>
+          ))}
           <a href="/panier" className="cart-link" aria-label="Panier">
             Panier
             {count > 0 && <span className="cart-badge">{count}</span>}

@@ -66,8 +66,8 @@ const DDL: string[] = [
 ];
 
 const SAMPLE = [
-  { name: "Escarpins vernis rouge", category: "CHAUSSURES", price: 15000, cost: 9000, stock: 8, sizes: "37,38,39,40", featured: true, description: "Escarpins elegants, talon 8 cm. Parfaits pour les sorties et ceremonies." },
-  { name: "Serum eclat visage", category: "COSMETIQUES", price: 8000, cost: 4500, stock: 20, sizes: "", featured: true, description: "Serum hydratant pour une peau lumineuse." },
+  { name: "Escarpins vernis rouge", category: "Chaussures", price: 15000, cost: 9000, stock: 8, sizes: "37,38,39,40", featured: true, description: "Escarpins elegants, talon 8 cm. Parfaits pour les sorties et ceremonies." },
+  { name: "Serum eclat visage", category: "Cosmétiques", price: 8000, cost: 4500, stock: 20, sizes: "", featured: true, description: "Serum hydratant pour une peau lumineuse." },
 ];
 
 function slugify(s: string): string {

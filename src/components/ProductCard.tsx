@@ -10,11 +10,6 @@ export interface ProductCardData {
   featured: boolean;
 }
 
-const CAT_LABEL: Record<string, string> = {
-  CHAUSSURES: "Chaussures",
-  COSMETIQUES: "Cosmétiques",
-};
-
 export default function ProductCard({ p }: { p: ProductCardData }) {
   const out = p.stock <= 0;
   return (
@@ -28,7 +23,7 @@ export default function ProductCard({ p }: { p: ProductCardData }) {
         )}
       </div>
       <div className="card-body">
-        <div className="card-cat">{CAT_LABEL[p.category] ?? p.category}</div>
+        <div className="card-cat">{p.category}</div>
         <div className="card-name">{p.name}</div>
         <div className="card-foot">
           <div className="price">{formatFcfa(p.price)}</div>

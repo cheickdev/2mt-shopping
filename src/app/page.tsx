@@ -1,16 +1,14 @@
 import { prisma } from "@/lib/db";
+import { getCategories } from "@/lib/categories";
 import ProductCard, { ProductCardData } from "@/components/ProductCard";
 
 export const dynamic = "force-dynamic";
 
-const CATS = [
-  { key: "CHAUSSURES", label: "Chaussures" },
-  { key: "COSMETIQUES", label: "Cosmétiques" },
-];
-
 export default async function Home({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
   const { cat } = await searchParams;
-  const activeCat = cat && CATS.some((c) => c.key === cat) ? cat : null;
+
+  const categories = await getCategories();
+  const activeCat = cat && categories.includes(cat) ? cat : null;
 
   // Tolere une base pas encore initialisee (affiche une boutique vide plutot
   // qu'une erreur, le temps que l'admin clique sur "Initialiser la base").
@@ -39,20 +37,25 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
       {!activeCat && (
         <section className="hero">
           <div className="eyebrow">Livraison à Bamako</div>
-          <h1>Chaussures & cosmétiques, livrés chez vous</h1>
+          <h1>La boutique qui vous livre chez vous</h1>
           <p>
             Choisissez, commandez en ligne et <strong>payez à la livraison</strong>. Simple,
             rapide, partout à Bamako.
           </p>
-          <div className="cta-row">
-            <a className="btn" href="/?cat=CHAUSSURES">Voir les chaussures</a>
-            <a className="btn ghost" href="/?cat=COSMETIQUES">Voir les cosmétiques</a>
-          </div>
+          {categories.length > 0 && (
+            <div className="cta-row">
+              {categories.slice(0, 4).map((c, i) => (
+                <a key={c} className={`btn ${i === 0 ? "" : "ghost"}`} href={`/?cat=${encodeURIComponent(c)}`}>
+                  {c}
+                </a>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
       <div className="section-head">
-        <h2>{activeCat ? CATS.find((c) => c.key === activeCat)!.label : "Nos articles"}</h2>
+        <h2>{activeCat ?? "Nos articles"}</h2>
         {activeCat && <a href="/">Tout voir</a>}
       </div>
 

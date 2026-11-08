@@ -55,6 +55,7 @@ const marginPct = (price: number, cost: number) => (price > 0 ? Math.round(((pri
 function Row({ p }: { p: ProductRow }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [category, setCategory] = useState(p.category);
   const [price, setPrice] = useState(String(p.price));
   const [cost, setCost] = useState(String(p.cost));
   const [stock, setStock] = useState(String(p.stock));
@@ -77,6 +78,7 @@ function Row({ p }: { p: ProductRow }) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          category: category.trim() || p.category,
           price: parseFcfa(price),
           cost: parseFcfa(cost),
           stock: parseInt(stock, 10) || 0,
@@ -121,9 +123,16 @@ function Row({ p }: { p: ProductRow }) {
             )}
           </button>
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-          <div>
+          <div style={{ minWidth: 0 }}>
             <strong>{p.name}</strong>
-            <div className="note" style={{ fontSize: 12 }}>{p.category === "CHAUSSURES" ? "Chaussures" : "Cosmétiques"}</div>
+            <input
+              className="input sm"
+              list="cat-suggestions"
+              style={{ marginTop: 4, width: 140 }}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="Catégorie"
+            />
           </div>
         </div>
       </td>
@@ -154,7 +163,7 @@ function CreateForm() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ name: "", category: "CHAUSSURES", price: "", cost: "", stock: "", sizes: "", description: "", featured: false });
+  const [f, setF] = useState({ name: "", category: "", price: "", cost: "", stock: "", sizes: "", description: "", featured: false });
   const [image, setImage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -214,10 +223,14 @@ function CreateForm() {
         </div>
         <div className="field">
           <label>Catégorie</label>
-          <select className="select" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
-            <option value="CHAUSSURES">Chaussures</option>
-            <option value="COSMETIQUES">Cosmétiques</option>
-          </select>
+          <input
+            className="input"
+            list="cat-suggestions"
+            value={f.category}
+            onChange={(e) => setF({ ...f, category: e.target.value })}
+            placeholder="Ex. Chaussures, Vêtements, Parfums…"
+          />
+          <span className="note">Choisissez une catégorie existante ou tapez-en une nouvelle.</span>
         </div>
         <div className="field">
           <label>Tailles / variantes (séparées par virgule)</label>
@@ -252,7 +265,7 @@ function CreateForm() {
         </label>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <button className="btn" onClick={create} disabled={saving || !f.name}>{saving ? "…" : "Créer le produit"}</button>
+        <button className="btn" onClick={create} disabled={saving || !f.name || !f.category.trim()}>{saving ? "…" : "Créer le produit"}</button>
         <button className="btn ghost" onClick={() => setOpen(false)}>Annuler</button>
       </div>
       {error && <div className="error" style={{ marginTop: 10 }}>{error}</div>}
@@ -260,9 +273,12 @@ function CreateForm() {
   );
 }
 
-export default function ProductsManager({ products }: { products: ProductRow[] }) {
+export default function ProductsManager({ products, categories }: { products: ProductRow[]; categories: string[] }) {
   return (
     <>
+      <datalist id="cat-suggestions">
+        {categories.map((c) => <option key={c} value={c} />)}
+      </datalist>
       <CreateForm />
       {products.length === 0 ? (
         <p className="note">Aucun produit. Cliquez « Ajouter un produit » pour commencer.</p>

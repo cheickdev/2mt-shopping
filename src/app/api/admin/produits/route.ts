@@ -6,7 +6,7 @@ import { slugify, randomSuffix } from "@/lib/slug";
 
 const schema = z.object({
   name: z.string().min(1, "Nom requis."),
-  category: z.enum(["CHAUSSURES", "COSMETIQUES"]),
+  category: z.string().min(1, "Catégorie requise.").max(40),
   description: z.string().optional().default(""),
   price: z.number().int().nonnegative(),
   cost: z.number().int().nonnegative().default(0),

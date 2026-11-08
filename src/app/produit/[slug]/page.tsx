@@ -7,8 +7,6 @@ import AddToCart, { AddToCartProduct } from "@/components/AddToCart";
 
 export const dynamic = "force-dynamic";
 
-const CAT_LABEL: Record<string, string> = { CHAUSSURES: "Chaussures", COSMETIQUES: "Cosmétiques" };
-
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const p = await prisma.product.findUnique({ where: { slug } });
@@ -44,8 +42,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <nav className="note" style={{ marginTop: 16 }}>
         <a href="/" style={{ textDecoration: "none", color: "var(--muted)" }}>Accueil</a>
         {" › "}
-        <a href={`/?cat=${p.category}`} style={{ textDecoration: "none", color: "var(--muted)" }}>
-          {CAT_LABEL[p.category] ?? p.category}
+        <a href={`/?cat=${encodeURIComponent(p.category)}`} style={{ textDecoration: "none", color: "var(--muted)" }}>
+          {p.category}
         </a>
         {" › "}
         <span>{p.name}</span>
@@ -57,7 +55,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="card-cat">{CAT_LABEL[p.category] ?? p.category}</div>
+          <div className="card-cat">{p.category}</div>
           <h1>{p.name}</h1>
           <div className="p-price">{formatFcfa(p.price)}</div>
           {p.description && <p className="desc">{p.description}</p>}

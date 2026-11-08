@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin-auth";
 
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
+  category: z.string().min(1).max(40).optional(),
   description: z.string().optional(),
   price: z.number().int().nonnegative().optional(),
   cost: z.number().int().nonnegative().optional(),

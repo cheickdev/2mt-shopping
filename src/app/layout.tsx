@@ -3,6 +3,7 @@ import "./globals.css";
 import { CartProvider } from "@/components/cart";
 import Header from "@/components/Header";
 import { getSettings } from "@/lib/settings";
+import { getCategories } from "@/lib/categories";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -33,7 +34,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSettings();
+  const [settings, categories] = await Promise.all([getSettings(), getCategories()]);
   return (
     <html lang="fr">
       <head>
@@ -46,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <CartProvider>
-          <Header shopName={settings.shopName} />
+          <Header shopName={settings.shopName} categories={categories} />
           <main className="container">{children}</main>
           <footer className="footer">
             {settings.shopName} — Bamako. Commandez en ligne, payez à la livraison.
