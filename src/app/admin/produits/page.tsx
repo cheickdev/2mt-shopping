@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { currentRole } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { getAllCategories } from "@/lib/categories";
+import { getSettings } from "@/lib/settings";
 import AdminShell from "../AdminShell";
 import ProductsManager, { ProductRow } from "@/components/admin/ProductsManager";
 
@@ -11,13 +12,15 @@ export default async function AdminProducts() {
   const role = await currentRole();
   if (!role) redirect("/admin/login");
 
-  const [products, categories] = await Promise.all([
+  const [products, categories, settings] = await Promise.all([
     prisma.product.findMany({
       orderBy: [{ archived: "asc" }, { createdAt: "desc" }],
       include: { variants: { orderBy: { position: "asc" } } },
     }),
     getAllCategories(),
+    getSettings(),
   ]);
+  const userName = role === "owner" ? settings.ownerName : settings.partnerName;
   const rows: ProductRow[] = products.map((p) => ({
     id: p.id,
     slug: p.slug,
@@ -36,7 +39,7 @@ export default async function AdminProducts() {
   }));
 
   return (
-    <AdminShell owner={role === "owner"}>
+    <AdminShell owner={role === "owner"} userName={userName}>
       <h1>Produits</h1>
       <p className="note" style={{ marginTop: 0 }}>Ajoutez vos chaussures et cosmétiques, avec photo, prix et stock.</p>
       <ProductsManager products={rows} categories={categories} />

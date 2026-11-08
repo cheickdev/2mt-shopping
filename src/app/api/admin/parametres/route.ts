@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { isOwner } from "@/lib/admin-auth";
+import { isOwner, hashPassword } from "@/lib/admin-auth";
 
 const schema = z.object({
   shopName: z.string().min(1).optional(),
@@ -9,6 +9,11 @@ const schema = z.object({
   deliveryFee: z.number().int().nonnegative().optional(),
   partnerAPct: z.number().int().min(0).max(100).optional(),
   adBudget: z.number().int().nonnegative().optional(),
+  ownerName: z.string().min(1).max(40).optional(),
+  partnerName: z.string().min(1).max(40).optional(),
+  // Nouveaux mots de passe (facultatifs) : vides = inchanges.
+  ownerPassword: z.string().min(4, "Mot de passe trop court (4 min).").optional(),
+  partnerPassword: z.string().min(4, "Mot de passe trop court (4 min).").optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -24,9 +29,13 @@ export async function PATCH(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ?? "Champs invalides." }, { status: 400 });
   }
-  const d = { ...parsed.data };
-  if (d.whatsapp !== undefined) d.whatsapp = d.whatsapp.replace(/[^\d]/g, ""); // garde les chiffres
 
-  await prisma.setting.upsert({ where: { id: "main" }, update: d, create: { id: "main", ...d } });
-  return NextResponse.json({ ok: true });
+  const { ownerPassword, partnerPassword, ...rest } = parsed.data;
+  const data: Record<string, unknown> = { ...rest };
+  if (data.whatsapp !== undefined) data.whatsapp = String(data.whatsapp).replace(/[^\d]/g, "");
+  if (ownerPassword && ownerPassword.trim()) data.ownerPassHash = hashPassword(ownerPassword.trim());
+  if (partnerPassword && partnerPassword.trim()) data.partnerPassHash = hashPassword(partnerPassword.trim());
+
+  await prisma.setting.upsert({ where: { id: "main" }, update: data, create: { id: "main", ...data } });
+  return NextResponse.json({ ok: true, passwordChanged: !!(ownerPassword || partnerPassword) });
 }

@@ -90,4 +90,11 @@ model Setting {
   deliveryFee    Int    @default(1000) // frais de livraison Bamako par defaut (FCFA)
   partnerAPct    Int    @default(60) // part de l'associe principal (%)
   adBudget       Int    @default(0) // depenses pub du mois (FCFA), pour le calcul du benefice net
+
+  // Associes : noms affiches + mots de passe (hash). Si le hash est vide, on
+  // retombe sur la variable d'environnement correspondante.
+  ownerName       String @default("Propriétaire")
+  partnerName     String @default("Partenaire")
+  ownerPassHash   String @default("") // hash scrypt "sel:hash" ; vide => ADMIN_PASSWORD
+  partnerPassHash String @default("") // hash scrypt "sel:hash" ; vide => PARTNER_PASSWORD
 }

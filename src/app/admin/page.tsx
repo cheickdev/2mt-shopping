@@ -20,21 +20,22 @@ export default async function AdminDashboard() {
   const role = await currentRole();
   if (!role) redirect("/admin/login");
   const owner = role === "owner";
+  const settings = await getSettings();
+  const userName = role === "owner" ? settings.ownerName : settings.partnerName;
 
   // Si la base n'est pas encore initialisee (tables absentes), on propose de
   // l'initialiser en 1 clic plutot que d'afficher une erreur.
   let data;
   try {
-    const [orders, productCount, lowStock, settings] = await Promise.all([
+    const [orders, productCount, lowStock] = await Promise.all([
       prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } }),
       prisma.product.count({ where: { active: true, archived: false } }),
       prisma.product.count({ where: { active: true, archived: false, stock: { lte: 2 } } }),
-      getSettings(),
     ]);
-    data = { orders, productCount, lowStock, settings };
+    data = { orders, productCount, lowStock };
   } catch {
     return (
-      <AdminShell owner={owner}>
+      <AdminShell owner={owner} userName={userName}>
         <h1>Tableau de bord</h1>
         {owner ? (
           <SetupPrompt />
@@ -44,7 +45,7 @@ export default async function AdminDashboard() {
       </AdminShell>
     );
   }
-  const { orders, productCount, lowStock, settings } = data;
+  const { orders, productCount, lowStock } = data;
 
   const nouvelles = orders.filter((o) => o.status === "NOUVELLE").length;
   const enCours = orders.filter((o) => o.status === "CONFIRMEE" || o.status === "EN_LIVRAISON").length;
@@ -62,7 +63,7 @@ export default async function AdminDashboard() {
   const recent = orders.slice(0, 8);
 
   return (
-    <AdminShell owner={owner}>
+    <AdminShell owner={owner} userName={userName}>
       <h1>Tableau de bord</h1>
       <p className="note" style={{ marginTop: 0 }}>Vue d'ensemble de 2MT - Shopping.</p>
 

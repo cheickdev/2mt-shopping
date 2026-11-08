@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentRole } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
+import { getSettings } from "@/lib/settings";
 import AdminShell from "../AdminShell";
 import OrdersManager, { OrderRow } from "@/components/admin/OrdersManager";
 
@@ -10,7 +11,11 @@ export default async function AdminOrders() {
   const role = await currentRole();
   if (!role) redirect("/admin/login");
 
-  const orders = await prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } });
+  const [orders, settings] = await Promise.all([
+    prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } }),
+    getSettings(),
+  ]);
+  const userName = role === "owner" ? settings.ownerName : settings.partnerName;
   const rows: OrderRow[] = orders.map((o) => ({
     publicId: o.publicId,
     customerName: o.customerName,
@@ -26,7 +31,7 @@ export default async function AdminOrders() {
   }));
 
   return (
-    <AdminShell owner={role === "owner"}>
+    <AdminShell owner={role === "owner"} userName={userName}>
       <h1>Commandes</h1>
       <p className="note" style={{ marginTop: 0 }}>Suivez et faites avancer chaque commande, et contactez le client en un clic.</p>
       <OrdersManager orders={rows} />

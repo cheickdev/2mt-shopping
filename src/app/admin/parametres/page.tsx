@@ -13,7 +13,7 @@ export default async function AdminSettings() {
   if (role !== "owner") redirect("/admin"); // réservé au propriétaire
   const settings = await getSettings();
   return (
-    <AdminShell owner>
+    <AdminShell owner userName={settings.ownerName}>
       <h1>Paramètres</h1>
       <p className="note" style={{ marginTop: 0 }}>Réglez votre boutique : WhatsApp, livraison, partage du bénéfice.</p>
       <SettingsForm initial={settings} />

@@ -1,13 +1,16 @@
 // Authentification du tableau de bord avec DEUX roles :
-//   - "owner"  : le proprietaire (mot de passe ADMIN_PASSWORD) — acces total.
-//   - "staff"  : la partenaire (mot de passe PARTNER_PASSWORD) — tout sauf les
-//                Parametres. Optionnel : si PARTNER_PASSWORD n'est pas defini,
-//                il n'y a qu'un seul compte (owner).
-// Le role est encode dans le cookie signe (HMAC) : on retrouve le role en
-// testant a quel role correspond le jeton, sans stocker le role en clair.
+//   - "owner" : le proprietaire — acces total (Parametres compris).
+//   - "staff" : la partenaire — tout sauf les Parametres.
+//
+// Les mots de passe peuvent etre changes depuis l'app : on stocke alors un
+// hash scrypt dans Setting (ownerPassHash / partnerPassHash). Si le hash est
+// vide, on retombe sur la variable d'environnement (ADMIN_PASSWORD /
+// PARTNER_PASSWORD). Le role est encode dans le cookie signe (HMAC) ; changer
+// un mot de passe invalide les sessions de ce role.
 
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/db";
 
 export const ADMIN_COOKIE = "admin_session";
 export type Role = "owner" | "staff";
@@ -16,22 +19,27 @@ function sessionSecret(): string {
   return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "dev-insecure-secret";
 }
 
-function ownerPassword(): string {
+function envOwnerPassword(): string {
   const pw = process.env.ADMIN_PASSWORD;
   if (pw) return pw;
   if (process.env.NODE_ENV === "production") return crypto.randomBytes(32).toString("hex");
   return "2mt-admin";
 }
-
-// Mot de passe partenaire : vide => compte partenaire desactive.
-function staffPassword(): string {
+function envStaffPassword(): string {
   return process.env.PARTNER_PASSWORD || "";
 }
 
-/** Jeton attendu dans le cookie pour un role donne. */
-export function tokenFor(role: Role): string {
-  const pw = role === "owner" ? ownerPassword() : staffPassword();
-  return crypto.createHmac("sha256", sessionSecret()).update("admin:" + role + ":" + pw).digest("hex");
+// --- Hachage des mots de passe (scrypt) -------------------------------------
+export function hashPassword(pw: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const h = crypto.scryptSync(pw, salt, 32).toString("hex");
+  return salt + ":" + h;
+}
+function verifyHash(pw: string, stored: string): boolean {
+  const [salt, h] = stored.split(":");
+  if (!salt || !h) return false;
+  const calc = crypto.scryptSync(pw, salt, 32).toString("hex");
+  return safeEqual(calc, h);
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -40,30 +48,80 @@ function safeEqual(a: string, b: string): boolean {
   return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
 }
 
-/** Verifie un mot de passe saisi et renvoie le role correspondant, ou null. */
-export function roleForPassword(pw: string): Role | null {
-  if (safeEqual(pw ?? "", ownerPassword())) return "owner";
-  const sp = staffPassword();
-  if (sp && safeEqual(pw ?? "", sp)) return "staff";
+interface AuthRow {
+  ownerPassHash: string;
+  partnerPassHash: string;
+}
+
+async function authRow(): Promise<AuthRow | null> {
+  try {
+    const s = await prisma.setting.findUnique({
+      where: { id: "main" },
+      select: { ownerPassHash: true, partnerPassHash: true },
+    });
+    return s ?? null;
+  } catch {
+    return null; // base pas encore initialisee : on utilisera les env
+  }
+}
+
+// Cle de credential par role (change quand le mot de passe change) ; null si le
+// role n'est pas disponible (partenaire sans mot de passe defini).
+function credKey(role: Role, row: AuthRow | null): string | null {
+  if (role === "owner") {
+    return row?.ownerPassHash ? "h:" + row.ownerPassHash : "e:" + envOwnerPassword();
+  }
+  if (row?.partnerPassHash) return "h:" + row.partnerPassHash;
+  const envp = envStaffPassword();
+  return envp ? "e:" + envp : null;
+}
+
+function tokenFor(role: Role, row: AuthRow | null): string | null {
+  const key = credKey(role, row);
+  if (key === null) return null;
+  return crypto.createHmac("sha256", sessionSecret()).update("admin:" + role + ":" + key).digest("hex");
+}
+
+function verifyFor(role: Role, pw: string, row: AuthRow | null): boolean {
+  if (role === "owner") {
+    if (row?.ownerPassHash) return verifyHash(pw, row.ownerPassHash);
+    return safeEqual(pw ?? "", envOwnerPassword());
+  }
+  if (row?.partnerPassHash) return verifyHash(pw, row.partnerPassHash);
+  const envp = envStaffPassword();
+  return envp ? safeEqual(pw ?? "", envp) : false;
+}
+
+/** Jeton de cookie pour un role (apres connexion). */
+export async function tokenForRole(role: Role): Promise<string | null> {
+  return tokenFor(role, await authRow());
+}
+
+/** Verifie un mot de passe saisi et renvoie le role, ou null. */
+export async function roleForPassword(pw: string): Promise<Role | null> {
+  const row = await authRow();
+  if (verifyFor("owner", pw, row)) return "owner";
+  if (verifyFor("staff", pw, row)) return "staff";
   return null;
 }
 
-/** Role de la session courante (d'apres le cookie), ou null si non connecte. */
+/** Role de la session courante (d'apres le cookie), ou null. */
 export async function currentRole(): Promise<Role | null> {
   const store = await cookies();
   const token = store.get(ADMIN_COOKIE)?.value;
   if (!token) return null;
-  if (safeEqual(token, tokenFor("owner"))) return "owner";
-  if (staffPassword() && safeEqual(token, tokenFor("staff"))) return "staff";
+  const row = await authRow();
+  const ownerTok = tokenFor("owner", row);
+  if (ownerTok && safeEqual(token, ownerTok)) return "owner";
+  const staffTok = tokenFor("staff", row);
+  if (staffTok && safeEqual(token, staffTok)) return "staff";
   return null;
 }
 
-/** Vrai si la session est connectee (proprietaire OU partenaire). */
 export async function isAdmin(): Promise<boolean> {
   return (await currentRole()) !== null;
 }
 
-/** Vrai si la session est le proprietaire (acces aux Parametres). */
 export async function isOwner(): Promise<boolean> {
   return (await currentRole()) === "owner";
 }

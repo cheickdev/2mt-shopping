@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { ADMIN_COOKIE, roleForPassword, tokenFor } from "@/lib/admin-auth";
+import { ADMIN_COOKIE, roleForPassword, tokenForRole } from "@/lib/admin-auth";
 
 export async function POST(req: Request) {
   let body: unknown;
@@ -10,12 +10,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Requête invalide." }, { status: 400 });
   }
   const password = (body as { password?: string })?.password ?? "";
-  const role = roleForPassword(password);
+  const role = await roleForPassword(password);
   if (!role) {
     return NextResponse.json({ ok: false, error: "Mot de passe incorrect." }, { status: 401 });
   }
+  const token = await tokenForRole(role);
+  if (!token) {
+    return NextResponse.json({ ok: false, error: "Connexion impossible." }, { status: 500 });
+  }
   const store = await cookies();
-  store.set(ADMIN_COOKIE, tokenFor(role), {
+  store.set(ADMIN_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

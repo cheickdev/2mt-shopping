@@ -77,6 +77,10 @@ const DDL: string[] = [
     "adBudget" INTEGER NOT NULL DEFAULT 0,
     CONSTRAINT "Setting_pkey" PRIMARY KEY ("id")
   )`,
+  `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "ownerName" TEXT NOT NULL DEFAULT 'Propriétaire'`,
+  `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "partnerName" TEXT NOT NULL DEFAULT 'Partenaire'`,
+  `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "ownerPassHash" TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "partnerPassHash" TEXT NOT NULL DEFAULT ''`,
 ];
 
 const SAMPLE = [

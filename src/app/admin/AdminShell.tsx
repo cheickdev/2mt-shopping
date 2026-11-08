@@ -9,7 +9,15 @@ const LINKS = [
   { href: "/admin/parametres", label: "Paramètres", ownerOnly: true },
 ];
 
-export default function AdminShell({ children, owner = false }: { children: React.ReactNode; owner?: boolean }) {
+export default function AdminShell({
+  children,
+  owner = false,
+  userName,
+}: {
+  children: React.ReactNode;
+  owner?: boolean;
+  userName?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -32,7 +40,13 @@ export default function AdminShell({ children, owner = false }: { children: Reac
             </a>
           ))}
         </nav>
-        <button className="admin-logout" onClick={logout}>Se déconnecter</button>
+        {userName && (
+          <div className="note" style={{ marginTop: "auto", marginBottom: 6 }}>
+            Connecté : <strong style={{ color: "var(--fg)" }}>{userName}</strong>
+            {!owner && <span> · partenaire</span>}
+          </div>
+        )}
+        <button className="admin-logout" onClick={logout} style={userName ? { marginTop: 0 } : undefined}>Se déconnecter</button>
       </aside>
       <section className="admin-main">{children}</section>
     </div>
