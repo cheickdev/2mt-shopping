@@ -13,6 +13,7 @@ const schema = z.object({
       z.object({
         productId: z.string().min(1),
         variant: z.string().optional().default(""),
+        variantId: z.string().nullable().optional(),
         quantity: z.number().int().positive(),
       })
     )
@@ -45,14 +46,41 @@ export async function POST(req: Request) {
   const products = await prisma.product.findMany({ where: { id: { in: ids }, active: true } });
   const byId = new Map(products.map((p) => [p.id, p]));
 
-  const lines: { productId: string; name: string; price: number; cost: number; quantity: number; variant: string }[] = [];
+  const variantIds = data.items.map((i) => i.variantId).filter((v): v is string => !!v);
+  const variants = variantIds.length
+    ? await prisma.variant.findMany({ where: { id: { in: variantIds } } })
+    : [];
+  const variantById = new Map(variants.map((v) => [v.id, v]));
+
+  const lines: {
+    productId: string;
+    name: string;
+    price: number;
+    cost: number;
+    quantity: number;
+    variant: string;
+    variantId: string | null;
+  }[] = [];
+
   for (const item of data.items) {
     const p = byId.get(item.productId);
     if (!p) return NextResponse.json({ ok: false, error: "Un article n'est plus disponible." }, { status: 400 });
-    if (p.stock < item.quantity) {
-      return NextResponse.json({ ok: false, error: `Stock insuffisant pour « ${p.name} ».` }, { status: 400 });
+
+    if (item.variantId) {
+      const v = variantById.get(item.variantId);
+      if (!v || v.productId !== p.id || !v.active) {
+        return NextResponse.json({ ok: false, error: `Une variété de « ${p.name} » n'est plus disponible.` }, { status: 400 });
+      }
+      if (v.stock < item.quantity) {
+        return NextResponse.json({ ok: false, error: `Stock insuffisant pour « ${p.name} — ${v.label} ».` }, { status: 400 });
+      }
+      lines.push({ productId: p.id, name: p.name, price: p.price, cost: p.cost, quantity: item.quantity, variant: v.label, variantId: v.id });
+    } else {
+      if (p.stock < item.quantity) {
+        return NextResponse.json({ ok: false, error: `Stock insuffisant pour « ${p.name} ».` }, { status: 400 });
+      }
+      lines.push({ productId: p.id, name: p.name, price: p.price, cost: p.cost, quantity: item.quantity, variant: item.variant ?? "", variantId: null });
     }
-    lines.push({ productId: p.id, name: p.name, price: p.price, cost: p.cost, quantity: item.quantity, variant: item.variant ?? "" });
   }
 
   const settings = await getSettings();
@@ -73,12 +101,26 @@ export async function POST(req: Request) {
         itemsTotal,
         deliveryFee,
         total,
-        items: { create: lines },
+        items: {
+          create: lines.map((l) => ({
+            productId: l.productId,
+            name: l.name,
+            price: l.price,
+            cost: l.cost,
+            quantity: l.quantity,
+            variant: l.variant,
+            variantId: l.variantId,
+          })),
+        },
       },
     });
-    // Decremente le stock.
+    // Decremente le stock de la bonne variete, ou du produit si pas de variete.
     for (const l of lines) {
-      await tx.product.update({ where: { id: l.productId }, data: { stock: { decrement: l.quantity } } });
+      if (l.variantId) {
+        await tx.variant.update({ where: { id: l.variantId }, data: { stock: { decrement: l.quantity } } });
+      } else {
+        await tx.product.update({ where: { id: l.productId }, data: { stock: { decrement: l.quantity } } });
+      }
     }
     return created;
   });

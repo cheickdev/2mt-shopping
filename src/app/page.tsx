@@ -4,6 +4,14 @@ import ProductCard, { ProductCardData } from "@/components/ProductCard";
 
 export const dynamic = "force-dynamic";
 
+function productsQuery(activeCat: string | null) {
+  return prisma.product.findMany({
+    where: { active: true, ...(activeCat ? { category: activeCat } : {}) },
+    orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+    include: { variants: { where: { active: true }, select: { stock: true } } },
+  });
+}
+
 export default async function Home({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
   const { cat } = await searchParams;
 
@@ -12,25 +20,25 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
 
   // Tolere une base pas encore initialisee (affiche une boutique vide plutot
   // qu'une erreur, le temps que l'admin clique sur "Initialiser la base").
-  let products: Awaited<ReturnType<typeof prisma.product.findMany>> = [];
+  let products: Awaited<ReturnType<typeof productsQuery>> = [];
   try {
-    products = await prisma.product.findMany({
-      where: { active: true, ...(activeCat ? { category: activeCat } : {}) },
-      orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-    });
+    products = await productsQuery(activeCat);
   } catch {
     products = [];
   }
 
-  const toCard = (p: (typeof products)[number]): ProductCardData => ({
-    slug: p.slug,
-    name: p.name,
-    category: p.category,
-    price: p.price,
-    stock: p.stock,
-    imageData: p.imageData,
-    featured: p.featured,
-  });
+  const toCard = (p: (typeof products)[number]): ProductCardData => {
+    const available = p.variants.length > 0 ? p.variants.some((v) => v.stock > 0) : p.stock > 0;
+    return {
+      slug: p.slug,
+      name: p.name,
+      category: p.category,
+      price: p.price,
+      available,
+      imageData: p.imageData,
+      featured: p.featured,
+    };
+  };
 
   return (
     <>

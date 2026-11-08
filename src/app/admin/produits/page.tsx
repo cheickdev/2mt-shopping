@@ -11,7 +11,10 @@ export default async function AdminProducts() {
   if (!(await isAdmin())) redirect("/admin/login");
 
   const [products, categories] = await Promise.all([
-    prisma.product.findMany({ orderBy: [{ active: "desc" }, { createdAt: "desc" }] }),
+    prisma.product.findMany({
+      orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+      include: { variants: { orderBy: { position: "asc" } } },
+    }),
     getAllCategories(),
   ]);
   const rows: ProductRow[] = products.map((p) => ({
@@ -27,6 +30,7 @@ export default async function AdminProducts() {
     imageData: p.imageData,
     featured: p.featured,
     active: p.active,
+    variants: p.variants.map((v) => ({ id: v.id, label: v.label, stock: v.stock, imageData: v.imageData, active: v.active })),
   }));
 
   return (

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatFcfa } from "@/lib/money";
-import AddToCart, { AddToCartProduct } from "@/components/AddToCart";
+import ProductDetail, { ProductDetailData } from "@/components/ProductDetail";
 
 export const dynamic = "force-dynamic";
 
@@ -23,18 +23,24 @@ function parseSizes(s: string): string[] {
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = await prisma.product.findUnique({ where: { slug } });
+  const p = await prisma.product.findUnique({
+    where: { slug },
+    include: { variants: { where: { active: true }, orderBy: { position: "asc" } } },
+  });
   if (!p || !p.active) notFound();
 
   const settings = await getSettings();
-  const product: AddToCartProduct = {
+  const product: ProductDetailData = {
     id: p.id,
     slug: p.slug,
     name: p.name,
+    category: p.category,
+    description: p.description,
     price: p.price,
     image: p.imageData,
-    sizes: parseSizes(p.sizes),
     stock: p.stock,
+    variants: p.variants.map((v) => ({ id: v.id, label: v.label, stock: v.stock, image: v.imageData })),
+    sizes: parseSizes(p.sizes),
   };
 
   return (
@@ -49,22 +55,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <span>{p.name}</span>
       </nav>
 
-      <div className="product">
-        <div className="gallery">
-          {p.imageData ? <img src={p.imageData} alt={p.name} /> : <div className="ph">Photo à venir</div>}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="card-cat">{p.category}</div>
-          <h1>{p.name}</h1>
-          <div className="p-price">{formatFcfa(p.price)}</div>
-          {p.description && <p className="desc">{p.description}</p>}
-          <AddToCart product={product} whatsapp={settings.whatsapp} />
-          <p className="note">
-            🛵 Livraison à Bamako · 💵 Paiement à la livraison · Frais : {formatFcfa(settings.deliveryFee)}
-          </p>
-        </div>
-      </div>
+      <ProductDetail product={product} whatsapp={settings.whatsapp} deliveryFee={settings.deliveryFee} />
     </>
   );
 }

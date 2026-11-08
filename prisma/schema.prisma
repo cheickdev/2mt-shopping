@@ -24,12 +24,27 @@ model Product {
   cost        Int      @default(0) // cout d'achat en FCFA (sert au calcul de marge)
   stock       Int      @default(0)
   sizes       String   @default("") // variantes separees par virgule : "38,39,40" ou "Rouge,Noir"
-  imageData   String? // photo en Data URL (base64) — suffisant pour la V1
+  imageData   String? // photo principale en Data URL (base64)
   active      Boolean  @default(true)
   featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
-  items OrderItem[]
+  variants Variant[]
+  items    OrderItem[]
+}
+
+// Une variete d'un produit (ex. une pointure, une contenance, une couleur).
+// Chaque variete a SON stock et SA photo.
+model Variant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String // ex. "Pointure 39", "Sauvage 100ml", "Rouge"
+  stock     Int      @default(0)
+  imageData String? // photo propre a la variete (sinon on retombe sur celle du produit)
+  active    Boolean  @default(true)
+  position  Int      @default(0) // ordre d'affichage
+  createdAt DateTime @default(now())
 }
 
 // Une commande passee par un client depuis la boutique.
@@ -62,7 +77,8 @@ model OrderItem {
   price     Int // prix unitaire fige (FCFA)
   cost      Int      @default(0) // cout unitaire fige (FCFA), pour le calcul de marge
   quantity  Int
-  variant   String   @default("") // pointure / couleur choisie
+  variant   String   @default("") // libelle de la variete choisie (fige)
+  variantId String? // variete choisie (pour decompter le bon stock)
 }
 
 // Parametres de la boutique (une seule ligne, id = "main").

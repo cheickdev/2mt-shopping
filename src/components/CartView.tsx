@@ -24,7 +24,7 @@ export default function CartView({ deliveryFee, whatsapp }: { deliveryFee: numbe
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          items: items.map((i) => ({ productId: i.productId, variant: i.variant, quantity: i.quantity })),
+          items: items.map((i) => ({ productId: i.productId, variant: i.variant, variantId: i.variantId ?? null, quantity: i.quantity })),
         }),
       });
       const data = await res.json();

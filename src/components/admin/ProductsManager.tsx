@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatFcfa, parseFcfa } from "@/lib/money";
+import { fileToDataUrl } from "@/components/admin/imageResize";
+import VariantsPanel, { VariantRow } from "@/components/admin/VariantsPanel";
 
 export interface ProductRow {
   id: string;
@@ -17,37 +19,7 @@ export interface ProductRow {
   imageData: string | null;
   featured: boolean;
   active: boolean;
-}
-
-// Redimensionne une photo cote navigateur -> Data URL JPEG legere.
-async function fileToDataUrl(file: File, maxDim = 900, quality = 0.82): Promise<string> {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const im = new Image();
-    im.onload = () => resolve(im);
-    im.onerror = reject;
-    im.src = dataUrl;
-  });
-  let { width, height } = img;
-  if (width > height && width > maxDim) {
-    height = Math.round((height * maxDim) / width);
-    width = maxDim;
-  } else if (height > maxDim) {
-    width = Math.round((width * maxDim) / height);
-    height = maxDim;
-  }
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return dataUrl;
-  ctx.drawImage(img, 0, 0, width, height);
-  return canvas.toDataURL("image/jpeg", quality);
+  variants: VariantRow[];
 }
 
 const marginPct = (price: number, cost: number) => (price > 0 ? Math.round(((price - cost) / price) * 100) : 0);
@@ -63,6 +35,7 @@ function Row({ p }: { p: ProductRow }) {
   const [image, setImage] = useState<string | null>(p.imageData);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -112,6 +85,7 @@ function Row({ p }: { p: ProductRow }) {
   }
 
   return (
+    <>
     <tr>
       <td>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -148,6 +122,9 @@ function Row({ p }: { p: ProductRow }) {
       <td>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <button className="btn sm" onClick={save} disabled={saving}>{saving ? "…" : "Enregistrer"}</button>
+          <button className="btn ghost sm" onClick={() => setExpanded((e) => !e)}>
+            Variétés ({p.variants.length}) {expanded ? "▲" : "▼"}
+          </button>
           <div style={{ display: "flex", gap: 4 }}>
             <button className="btn ghost sm" onClick={toggleActive}>{p.active ? "Masquer" : "Afficher"}</button>
             <button className="btn ghost sm" onClick={remove}>🗑</button>
@@ -156,6 +133,14 @@ function Row({ p }: { p: ProductRow }) {
         </div>
       </td>
     </tr>
+    {expanded && (
+      <tr>
+        <td colSpan={7} style={{ background: "var(--surface-2)" }}>
+          <VariantsPanel productId={p.id} variants={p.variants} />
+        </td>
+      </tr>
+    )}
+    </>
   );
 }
 
@@ -233,10 +218,6 @@ function CreateForm() {
           <span className="note">Choisissez une catégorie existante ou tapez-en une nouvelle.</span>
         </div>
         <div className="field">
-          <label>Tailles / variantes (séparées par virgule)</label>
-          <input className="input" value={f.sizes} onChange={(e) => setF({ ...f, sizes: e.target.value })} placeholder="38,39,40 ou Rouge,Noir" />
-        </div>
-        <div className="field">
           <label>Prix de vente (FCFA)</label>
           <input className="input" inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} placeholder="12000" />
         </div>
@@ -263,6 +244,11 @@ function CreateForm() {
         <label style={{ display: "flex", gap: 8, alignItems: "center", gridColumn: "1 / -1" }}>
           <input type="checkbox" checked={f.featured} onChange={(e) => setF({ ...f, featured: e.target.checked })} /> Mettre en « Coup de cœur » sur l'accueil
         </label>
+        <p className="note" style={{ gridColumn: "1 / -1", margin: 0 }}>
+          💡 Pour des variétés (pointures, contenances, couleurs) avec <strong>chacune son stock et sa photo</strong>,
+          créez d'abord le produit, puis ouvrez <strong>« Variétés »</strong> sur sa ligne. Le « Stock » ci-dessus
+          ne sert que si le produit n'a aucune variété.
+        </p>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button className="btn" onClick={create} disabled={saving || !f.name || !f.category.trim()}>{saving ? "…" : "Créer le produit"}</button>

@@ -54,6 +54,19 @@ const DDL: string[] = [
     CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
   )`,
   `CREATE INDEX IF NOT EXISTS "OrderItem_orderId_idx" ON "OrderItem"("orderId")`,
+  `ALTER TABLE "OrderItem" ADD COLUMN IF NOT EXISTS "variantId" TEXT`,
+  `CREATE TABLE IF NOT EXISTS "Variant" (
+    "id" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "stock" INTEGER NOT NULL DEFAULT 0,
+    "imageData" TEXT,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "position" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Variant_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "Variant_productId_idx" ON "Variant"("productId")`,
   `CREATE TABLE IF NOT EXISTS "Setting" (
     "id" TEXT NOT NULL DEFAULT 'main',
     "shopName" TEXT NOT NULL DEFAULT '2MT - Shopping',

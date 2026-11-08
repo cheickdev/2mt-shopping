@@ -5,13 +5,13 @@ export interface ProductCardData {
   name: string;
   category: string;
   price: number;
-  stock: number;
+  available: boolean;
   imageData: string | null;
   featured: boolean;
 }
 
 export default function ProductCard({ p }: { p: ProductCardData }) {
-  const out = p.stock <= 0;
+  const out = !p.available;
   return (
     <a href={`/produit/${p.slug}`} className="card">
       <div className="thumb">

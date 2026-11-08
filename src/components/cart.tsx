@@ -3,13 +3,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export interface CartItem {
-  key: string; // productId + "|" + variant
+  key: string; // productId + "|" + (variantId | variant)
   productId: string;
   slug: string;
   name: string;
   price: number; // FCFA
   image: string | null;
   variant: string;
+  variantId?: string | null;
   quantity: number;
 }
 
@@ -53,7 +54,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, ready]);
 
   const add = useCallback((item: Omit<CartItem, "key">) => {
-    const key = item.productId + "|" + item.variant;
+    const key = item.productId + "|" + (item.variantId ?? item.variant);
     setItems((prev) => {
       const existing = prev.find((i) => i.key === key);
       if (existing) {
