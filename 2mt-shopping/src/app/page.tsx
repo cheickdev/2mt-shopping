@@ -12,10 +12,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
   const { cat } = await searchParams;
   const activeCat = cat && CATS.some((c) => c.key === cat) ? cat : null;
 
-  const products = await prisma.product.findMany({
-    where: { active: true, ...(activeCat ? { category: activeCat } : {}) },
-    orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-  });
+  // Tolere une base pas encore initialisee (affiche une boutique vide plutot
+  // qu'une erreur, le temps que l'admin clique sur "Initialiser la base").
+  let products: Awaited<ReturnType<typeof prisma.product.findMany>> = [];
+  try {
+    products = await prisma.product.findMany({
+      where: { active: true, ...(activeCat ? { category: activeCat } : {}) },
+      orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+    });
+  } catch {
+    products = [];
+  }
 
   const toCard = (p: (typeof products)[number]): ProductCardData => ({
     slug: p.slug,

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatFcfa } from "@/lib/money";
 import AdminShell from "./AdminShell";
+import SetupPrompt from "@/components/admin/SetupPrompt";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,26 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function AdminDashboard() {
   if (!(await isAdmin())) redirect("/admin/login");
 
-  const [orders, productCount, lowStock, settings] = await Promise.all([
-    prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } }),
-    prisma.product.count({ where: { active: true } }),
-    prisma.product.count({ where: { active: true, stock: { lte: 2 } } }),
-    getSettings(),
-  ]);
+  // Si la base n'est pas encore initialisee (tables absentes), on propose de
+  // l'initialiser en 1 clic plutot que d'afficher une erreur.
+  let data;
+  try {
+    const [orders, productCount, lowStock, settings] = await Promise.all([
+      prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } }),
+      prisma.product.count({ where: { active: true } }),
+      prisma.product.count({ where: { active: true, stock: { lte: 2 } } }),
+      getSettings(),
+    ]);
+    data = { orders, productCount, lowStock, settings };
+  } catch {
+    return (
+      <AdminShell>
+        <h1>Tableau de bord</h1>
+        <SetupPrompt />
+      </AdminShell>
+    );
+  }
+  const { orders, productCount, lowStock, settings } = data;
 
   const nouvelles = orders.filter((o) => o.status === "NOUVELLE").length;
   const enCours = orders.filter((o) => o.status === "CONFIRMEE" || o.status === "EN_LIVRAISON").length;
