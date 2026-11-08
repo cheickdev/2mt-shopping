@@ -42,11 +42,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   return NextResponse.json({ ok: true });
 }
 
+// Suppression DEFINITIVE du produit (et de ses variétés). L'historique des
+// commandes garde le nom/prix figés, donc il n'est pas affecté.
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isAdmin())) return NextResponse.json({ ok: false, error: "Non autorisé." }, { status: 401 });
   const { id } = await params;
   try {
-    await prisma.product.update({ where: { id }, data: { active: false } });
+    await prisma.$transaction([
+      prisma.orderItem.updateMany({ where: { productId: id }, data: { productId: null } }),
+      prisma.variant.deleteMany({ where: { productId: id } }),
+      prisma.product.delete({ where: { id } }),
+    ]);
   } catch {
     return NextResponse.json({ ok: false, error: "Produit introuvable." }, { status: 404 });
   }

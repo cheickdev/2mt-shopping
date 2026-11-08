@@ -79,7 +79,7 @@ function Row({ p }: { p: ProductRow }) {
   }
 
   async function remove() {
-    if (!confirm("Retirer ce produit de la boutique ?")) return;
+    if (!confirm(`Supprimer définitivement « ${p.name} » et ses variétés ? Cette action est irréversible.`)) return;
     await fetch(`/api/admin/produits/${p.id}`, { method: "DELETE" });
     router.refresh();
   }
