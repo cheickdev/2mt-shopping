@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { isAdmin } from "@/lib/admin-auth";
+import { isOwner } from "@/lib/admin-auth";
 
 const schema = z.object({
   shopName: z.string().min(1).optional(),
@@ -12,7 +12,7 @@ const schema = z.object({
 });
 
 export async function PATCH(req: Request) {
-  if (!(await isAdmin())) return NextResponse.json({ ok: false, error: "Non autorisé." }, { status: 401 });
+  if (!(await isOwner())) return NextResponse.json({ ok: false, error: "Réservé au propriétaire." }, { status: 403 });
 
   let body: unknown;
   try {

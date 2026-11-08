@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/admin-auth";
+import { currentRole } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatFcfa } from "@/lib/money";
@@ -17,7 +17,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function AdminDashboard() {
-  if (!(await isAdmin())) redirect("/admin/login");
+  const role = await currentRole();
+  if (!role) redirect("/admin/login");
+  const owner = role === "owner";
 
   // Si la base n'est pas encore initialisee (tables absentes), on propose de
   // l'initialiser en 1 clic plutot que d'afficher une erreur.
@@ -32,9 +34,13 @@ export default async function AdminDashboard() {
     data = { orders, productCount, lowStock, settings };
   } catch {
     return (
-      <AdminShell>
+      <AdminShell owner={owner}>
         <h1>Tableau de bord</h1>
-        <SetupPrompt />
+        {owner ? (
+          <SetupPrompt />
+        ) : (
+          <p className="note">La base n&apos;est pas encore prête. Le propriétaire doit l&apos;initialiser.</p>
+        )}
       </AdminShell>
     );
   }
@@ -56,7 +62,7 @@ export default async function AdminDashboard() {
   const recent = orders.slice(0, 8);
 
   return (
-    <AdminShell>
+    <AdminShell owner={owner}>
       <h1>Tableau de bord</h1>
       <p className="note" style={{ marginTop: 0 }}>Vue d'ensemble de 2MT - Shopping.</p>
 

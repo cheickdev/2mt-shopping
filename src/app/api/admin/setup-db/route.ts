@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isAdmin } from "@/lib/admin-auth";
+import { isOwner } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +88,7 @@ function slugify(s: string): string {
 }
 
 export async function POST() {
-  if (!(await isAdmin())) return NextResponse.json({ ok: false, error: "Non autorisé." }, { status: 401 });
+  if (!(await isOwner())) return NextResponse.json({ ok: false, error: "Réservé au propriétaire." }, { status: 403 });
 
   try {
     for (const sql of DDL) await prisma.$executeRawUnsafe(sql);

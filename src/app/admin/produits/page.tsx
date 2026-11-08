@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/admin-auth";
+import { currentRole } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { getAllCategories } from "@/lib/categories";
 import AdminShell from "../AdminShell";
@@ -8,7 +8,8 @@ import ProductsManager, { ProductRow } from "@/components/admin/ProductsManager"
 export const dynamic = "force-dynamic";
 
 export default async function AdminProducts() {
-  if (!(await isAdmin())) redirect("/admin/login");
+  const role = await currentRole();
+  if (!role) redirect("/admin/login");
 
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
@@ -34,7 +35,7 @@ export default async function AdminProducts() {
   }));
 
   return (
-    <AdminShell>
+    <AdminShell owner={role === "owner"}>
       <h1>Produits</h1>
       <p className="note" style={{ marginTop: 0 }}>Ajoutez vos chaussures et cosmétiques, avec photo, prix et stock.</p>
       <ProductsManager products={rows} categories={categories} />
