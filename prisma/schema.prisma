@@ -25,7 +25,8 @@ model Product {
   stock       Int      @default(0)
   sizes       String   @default("") // variantes separees par virgule : "38,39,40" ou "Rouge,Noir"
   imageData   String? // photo principale en Data URL (base64)
-  active      Boolean  @default(true)
+  active      Boolean  @default(true) // visible dans la boutique
+  archived    Boolean  @default(false) // archive : retire de la boutique ET de la liste, mais restaurable
   featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
 

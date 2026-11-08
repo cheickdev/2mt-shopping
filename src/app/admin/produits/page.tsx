@@ -13,7 +13,7 @@ export default async function AdminProducts() {
 
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
-      orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ archived: "asc" }, { createdAt: "desc" }],
       include: { variants: { orderBy: { position: "asc" } } },
     }),
     getAllCategories(),
@@ -31,6 +31,7 @@ export default async function AdminProducts() {
     imageData: p.imageData,
     featured: p.featured,
     active: p.active,
+    archived: p.archived,
     variants: p.variants.map((v) => ({ id: v.id, label: v.label, stock: v.stock, imageData: v.imageData, active: v.active })),
   }));
 

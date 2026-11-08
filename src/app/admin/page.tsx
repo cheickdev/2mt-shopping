@@ -27,8 +27,8 @@ export default async function AdminDashboard() {
   try {
     const [orders, productCount, lowStock, settings] = await Promise.all([
       prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } }),
-      prisma.product.count({ where: { active: true } }),
-      prisma.product.count({ where: { active: true, stock: { lte: 2 } } }),
+      prisma.product.count({ where: { active: true, archived: false } }),
+      prisma.product.count({ where: { active: true, archived: false, stock: { lte: 2 } } }),
       getSettings(),
     ]);
     data = { orders, productCount, lowStock, settings };

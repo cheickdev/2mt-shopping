@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 function productsQuery(activeCat: string | null) {
   return prisma.product.findMany({
-    where: { active: true, ...(activeCat ? { category: activeCat } : {}) },
+    where: { active: true, archived: false, ...(activeCat ? { category: activeCat } : {}) },
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
     include: { variants: { where: { active: true }, select: { stock: true } } },
   });

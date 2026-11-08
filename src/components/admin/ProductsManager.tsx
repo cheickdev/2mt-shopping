@@ -19,6 +19,7 @@ export interface ProductRow {
   imageData: string | null;
   featured: boolean;
   active: boolean;
+  archived: boolean;
   variants: VariantRow[];
 }
 
@@ -78,8 +79,17 @@ function Row({ p }: { p: ProductRow }) {
     router.refresh();
   }
 
+  async function setArchived(archived: boolean) {
+    await fetch(`/api/admin/produits/${p.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived }),
+    });
+    router.refresh();
+  }
+
   async function remove() {
-    if (!confirm(`Supprimer définitivement « ${p.name} » et ses variétés ? Cette action est irréversible.`)) return;
+    if (!confirm(`Supprimer DÉFINITIVEMENT « ${p.name} » ? Cette action est irréversible. (Astuce : « Archiver » permet de le retrouver plus tard.)`)) return;
     await fetch(`/api/admin/produits/${p.id}`, { method: "DELETE" });
     router.refresh();
   }
@@ -121,14 +131,23 @@ function Row({ p }: { p: ProductRow }) {
       </td>
       <td>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <button className="btn sm" onClick={save} disabled={saving}>{saving ? "…" : "Enregistrer"}</button>
-          <button className="btn ghost sm" onClick={() => setExpanded((e) => !e)}>
-            Variétés ({p.variants.length}) {expanded ? "▲" : "▼"}
-          </button>
-          <div style={{ display: "flex", gap: 4 }}>
-            <button className="btn ghost sm" onClick={toggleActive}>{p.active ? "Masquer" : "Afficher"}</button>
-            <button className="btn ghost sm" onClick={remove}>🗑</button>
-          </div>
+          {p.archived ? (
+            <>
+              <button className="btn sm" onClick={() => setArchived(false)}>↩ Restaurer</button>
+              <button className="btn ghost sm" onClick={remove}>Supprimer définitivement</button>
+            </>
+          ) : (
+            <>
+              <button className="btn sm" onClick={save} disabled={saving}>{saving ? "…" : "Enregistrer"}</button>
+              <button className="btn ghost sm" onClick={() => setExpanded((e) => !e)}>
+                Variétés ({p.variants.length}) {expanded ? "▲" : "▼"}
+              </button>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button className="btn ghost sm" onClick={toggleActive}>{p.active ? "Masquer" : "Afficher"}</button>
+                <button className="btn ghost sm" onClick={() => setArchived(true)} title="Archiver">🗑 Archiver</button>
+              </div>
+            </>
+          )}
           {msg && <div className="note" style={{ fontSize: 12 }}>{msg}</div>}
         </div>
       </td>
@@ -260,14 +279,39 @@ function CreateForm() {
 }
 
 export default function ProductsManager({ products, categories }: { products: ProductRow[]; categories: string[] }) {
+  const [view, setView] = useState<"actifs" | "archives">("actifs");
+  const active = products.filter((p) => !p.archived);
+  const archived = products.filter((p) => p.archived);
+  const shown = view === "actifs" ? active : archived;
+
   return (
     <>
       <datalist id="cat-suggestions">
         {categories.map((c) => <option key={c} value={c} />)}
       </datalist>
-      <CreateForm />
-      {products.length === 0 ? (
-        <p className="note">Aucun produit. Cliquez « Ajouter un produit » pour commencer.</p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        <button className={`btn ${view === "actifs" ? "" : "ghost"} sm`} onClick={() => setView("actifs")}>
+          Produits ({active.length})
+        </button>
+        <button className={`btn ${view === "archives" ? "" : "ghost"} sm`} onClick={() => setView("archives")}>
+          Archives ({archived.length})
+        </button>
+      </div>
+
+      {view === "actifs" && <CreateForm />}
+
+      {view === "archives" && (
+        <p className="note">
+          Produits archivés : retirés de la boutique et de la liste. Cliquez <strong>« Restaurer »</strong> pour les remettre,
+          ou <strong>« Supprimer définitivement »</strong> pour les effacer pour de bon.
+        </p>
+      )}
+
+      {shown.length === 0 ? (
+        <p className="note">
+          {view === "actifs" ? "Aucun produit. Cliquez « Ajouter un produit » pour commencer." : "Aucun produit archivé."}
+        </p>
       ) : (
         <div className="table-wrap">
           <table className="table">
@@ -275,7 +319,7 @@ export default function ProductsManager({ products, categories }: { products: Pr
               <tr><th>Produit</th><th>Prix</th><th>Coût</th><th>Marge</th><th>Stock</th><th>⭐</th><th></th></tr>
             </thead>
             <tbody>
-              {products.map((p) => <Row key={p.id} p={p} />)}
+              {shown.map((p) => <Row key={p.id} p={p} />)}
             </tbody>
           </table>
         </div>

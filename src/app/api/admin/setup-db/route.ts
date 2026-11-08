@@ -25,6 +25,7 @@ const DDL: string[] = [
     CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Product_slug_key" ON "Product"("slug")`,
+  `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false`,
   `CREATE TABLE IF NOT EXISTS "Order" (
     "id" TEXT NOT NULL,
     "publicId" TEXT NOT NULL,

@@ -27,7 +27,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     where: { slug },
     include: { variants: { where: { active: true }, orderBy: { position: "asc" } } },
   });
-  if (!p || !p.active) notFound();
+  if (!p || !p.active || p.archived) notFound();
 
   const settings = await getSettings();
   const product: ProductDetailData = {

@@ -14,6 +14,7 @@ const patchSchema = z.object({
   imageData: z.string().nullable().optional(),
   featured: z.boolean().optional(),
   active: z.boolean().optional(),
+  archived: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

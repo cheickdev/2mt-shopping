@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 export async function getCategories(): Promise<string[]> {
   try {
     const rows = await prisma.product.findMany({
-      where: { active: true },
+      where: { active: true, archived: false },
       select: { category: true },
       distinct: ["category"],
       orderBy: { category: "asc" },
@@ -16,10 +16,11 @@ export async function getCategories(): Promise<string[]> {
   }
 }
 
-// Toutes les categories (y compris produits masques) — pour les suggestions admin.
+// Toutes les categories des produits non archives — pour les suggestions admin.
 export async function getAllCategories(): Promise<string[]> {
   try {
     const rows = await prisma.product.findMany({
+      where: { archived: false },
       select: { category: true },
       distinct: ["category"],
       orderBy: { category: "asc" },
