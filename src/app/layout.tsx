@@ -38,8 +38,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [settings, categories] = await Promise.all([getSettings(), getMenuCategories()]);
   const user = await getMenuUser(settings);
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <head>
+        {/* Applique le theme choisi avant l'affichage (evite un flash clair). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("2mt_theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

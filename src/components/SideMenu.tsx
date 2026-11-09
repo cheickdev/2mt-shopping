@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { MenuCategory, MenuUser } from "@/lib/menu";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // Menu lateral (☰) : categories deroulables, aide, et espace administrateur.
 export default function SideMenu({
@@ -95,6 +96,11 @@ export default function SideMenu({
               </a>
             )}
             <p className="note drawer-pad">Livraison à Bamako · Paiement à la livraison</p>
+          </section>
+
+          <section>
+            <h3>Affichage</h3>
+            <ThemeToggle />
           </section>
 
           {/* Espace administrateur : visible uniquement quand un admin est connecte. */}
