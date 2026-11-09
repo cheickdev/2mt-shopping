@@ -12,8 +12,18 @@ function productsQuery(activeCat: string | null) {
   });
 }
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
-  const { cat } = await searchParams;
+// Recherche insensible aux accents et a la casse ("serum" trouve "Sérum").
+const norm = (t: string) =>
+  t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function matches(p: { name: string; category: string; description: string }, q: string) {
+  const hay = norm(`${p.name} ${p.category} ${p.description}`);
+  return norm(q).split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+}
+
+export default async function Home({ searchParams }: { searchParams: Promise<{ cat?: string; q?: string }> }) {
+  const { cat, q: rawQ } = await searchParams;
+  const q = rawQ?.trim().slice(0, 80) || null;
 
   const categories = await getCategories();
   const activeCat = cat && categories.includes(cat) ? cat : null;
@@ -23,6 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
   let products: Awaited<ReturnType<typeof productsQuery>> = [];
   try {
     products = await productsQuery(activeCat);
+    if (q) products = products.filter((p) => matches(p, q));
   } catch {
     products = [];
   }
@@ -42,7 +53,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
 
   return (
     <>
-      {!activeCat && (
+      {!activeCat && !q && (
         <section className="hero">
           <div className="eyebrow">Livraison à Bamako</div>
           <h1>La boutique qui vous livre chez vous</h1>
@@ -63,11 +74,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
       )}
 
       <div className="section-head">
-        <h2>{activeCat ?? "Nos articles"}</h2>
-        {activeCat && <a href="/">Tout voir</a>}
+        <h2>{q ? `Résultats pour « ${q} »` : activeCat ?? "Nos articles"}</h2>
+        {(activeCat || q) && <a href="/">Tout voir</a>}
       </div>
 
-      {products.length === 0 ? (
+      {products.length === 0 && q ? (
+        <div className="card" style={{ padding: 20 }}>
+          <p className="note" style={{ margin: 0 }}>Aucun article ne correspond à « {q} ».</p>
+        </div>
+      ) : products.length === 0 ? (
         <div className="card" style={{ padding: 20 }}>
           <p className="note" style={{ margin: 0 }}>
             Aucun article pour le moment. Ajoutez vos produits depuis le tableau de bord
