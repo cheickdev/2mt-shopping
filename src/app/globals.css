@@ -329,3 +329,24 @@ button, input, select, textarea { font: inherit; }
   .show-sm { display: inline; }
   .nav-actions { gap: 10px; }
 }
+
+/* ---------- Carte (choix de l'adresse) ---------- */
+.map-picker { display: flex; flex-direction: column; gap: 8px; }
+.map-box { width: 100%; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; z-index: 0; background: var(--surface-2); }
+.map-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.map-pin-wrap { background: none; border: none; }
+.map-pin { display: flex; flex-direction: column; align-items: center; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.map-pin span { font-size: 30px; }
+.map-pin small {
+  margin-top: 1px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700;
+  padding: 2px 5px; border-radius: 6px; white-space: nowrap;
+}
+.map-pin.shop {
+  width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 2px solid var(--accent);
+  justify-content: center; font-size: 18px;
+}
+.delivery-far {
+  background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--fg);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 10px; padding: 10px 12px; font-size: 14px;
+}
+.delivery-far a { color: var(--accent); font-weight: 600; }

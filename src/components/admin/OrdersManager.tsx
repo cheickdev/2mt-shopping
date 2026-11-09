@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatFcfa } from "@/lib/money";
+import { formatKm, mapsLink } from "@/lib/delivery";
 
 export interface OrderItemRow {
   id: string;
@@ -20,6 +21,10 @@ export interface OrderRow {
   status: string;
   itemsTotal: number;
   deliveryFee: number;
+  deliveryLat: number | null;
+  deliveryLng: number | null;
+  deliveryKm: number | null;
+  deliveryToConfirm: boolean;
   total: number;
   createdAt: string;
   items: OrderItemRow[];
@@ -78,7 +83,18 @@ function Card({ o }: { o: OrderRow }) {
 
       <div style={{ margin: "10px 0", color: "var(--muted)", fontSize: 14 }}>
         <div><strong style={{ color: "var(--fg)" }}>{o.customerName}</strong> · {o.customerPhone}</div>
-        <div>📍 {o.quartier}</div>
+        <div>
+          📍 {o.quartier}
+          {o.deliveryKm != null && <> · {formatKm(o.deliveryKm)}</>}
+          {o.deliveryLat != null && o.deliveryLng != null && (
+            <>
+              {" · "}
+              <a href={mapsLink({ lat: o.deliveryLat, lng: o.deliveryLng })} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontWeight: 600 }}>
+                Voir sur la carte
+              </a>
+            </>
+          )}
+        </div>
         {o.note && <div>📝 {o.note}</div>}
       </div>
 
@@ -90,7 +106,8 @@ function Card({ o }: { o: OrderRow }) {
           </div>
         ))}
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
-          <span>Livraison</span><span>{formatFcfa(o.deliveryFee)}</span>
+          <span>Livraison</span>
+          <span>{o.deliveryToConfirm ? <strong style={{ color: "var(--warn)" }}>À convenir (trop loin)</strong> : formatFcfa(o.deliveryFee)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, marginTop: 4 }}>
           <span>Total</span><span>{formatFcfa(o.total)}</span>

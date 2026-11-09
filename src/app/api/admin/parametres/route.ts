@@ -11,6 +11,9 @@ const schema = z.object({
   adBudget: z.number().int().nonnegative().optional(),
   ownerName: z.string().min(1).max(40).optional(),
   partnerName: z.string().min(1).max(40).optional(),
+  // Point de depart des livraisons (null = non regle).
+  shopLat: z.number().min(-90).max(90).nullable().optional(),
+  shopLng: z.number().min(-180).max(180).nullable().optional(),
   // Nouveaux mots de passe (facultatifs) : vides = inchanges.
   ownerPassword: z.string().min(4, "Mot de passe trop court (4 min).").optional(),
   partnerPassword: z.string().min(4, "Mot de passe trop court (4 min).").optional(),
@@ -32,6 +35,11 @@ export async function PATCH(req: Request) {
 
   const { ownerPassword, partnerPassword, ...rest } = parsed.data;
   const data: Record<string, unknown> = { ...rest };
+  // Les deux coordonnees vont ensemble.
+  if ((data.shopLat == null) !== (data.shopLng == null)) {
+    data.shopLat = null;
+    data.shopLng = null;
+  }
   if (data.whatsapp !== undefined) data.whatsapp = String(data.whatsapp).replace(/[^\d]/g, "");
   if (ownerPassword && ownerPassword.trim()) data.ownerPassHash = hashPassword(ownerPassword.trim());
   if (partnerPassword && partnerPassword.trim()) data.partnerPassHash = hashPassword(partnerPassword.trim());

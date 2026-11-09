@@ -60,6 +60,10 @@ model Order {
   paymentMethod String   @default("LIVRAISON") // LIVRAISON (paiement a la livraison) ; MOBILE_MONEY plus tard
   itemsTotal    Int // somme des articles (FCFA)
   deliveryFee   Int      @default(0) // frais de livraison (FCFA)
+  deliveryLat   Float? // adresse choisie sur la carte par le client
+  deliveryLng   Float?
+  deliveryKm    Float? // distance depuis le point de depart de la boutique
+  deliveryToConfirm Boolean @default(false) // trop loin : frais a convenir avec le vendeur
   total         Int // itemsTotal + deliveryFee
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -87,7 +91,9 @@ model Setting {
   id             String @id @default("main")
   shopName       String @default("2MT - Shopping")
   whatsapp       String @default("") // numero WhatsApp des commandes (format international, ex. 223XXXXXXXX)
-  deliveryFee    Int    @default(1000) // frais de livraison Bamako par defaut (FCFA)
+  deliveryFee    Int    @default(1000) // frais par defaut, si le point de depart n'est pas regle (FCFA)
+  shopLat        Float? // point de depart des livraisons (regle sur la carte)
+  shopLng        Float?
   partnerAPct    Int    @default(60) // part de l'associe principal (%)
   adBudget       Int    @default(0) // depenses pub du mois (FCFA), pour le calcul du benefice net
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, SCHEMA_UPGRADES } from "@/lib/db";
 import { isOwner } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +81,7 @@ const DDL: string[] = [
   `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "partnerName" TEXT NOT NULL DEFAULT 'Partenaire'`,
   `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "ownerPassHash" TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "partnerPassHash" TEXT NOT NULL DEFAULT ''`,
+  ...SCHEMA_UPGRADES,
 ];
 
 const SAMPLE = [

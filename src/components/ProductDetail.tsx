@@ -139,7 +139,7 @@ export default function ProductDetail({ product, whatsapp, deliveryFee }: { prod
           </div>
         )}
 
-        <p className="note">🛵 Livraison à Bamako · 💵 Paiement à la livraison · Frais : {formatFcfa(deliveryFee)}</p>
+        <p className="note">🛵 Livraison à Bamako · 💵 Paiement à la livraison · Frais : {deliveryFee > 0 ? formatFcfa(deliveryFee) : "selon la distance, calculés au panier"}</p>
       </div>
     </div>
   );

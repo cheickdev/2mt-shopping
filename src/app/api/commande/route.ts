@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
+import { quoteDelivery } from "@/lib/delivery";
 
 const schema = z.object({
   customerName: z.string().min(2, "Nom trop court."),
   customerPhone: z.string().min(6, "Téléphone invalide."),
   quartier: z.string().min(2, "Indiquez votre quartier."),
   note: z.string().optional().default(""),
+  // Adresse de livraison choisie sur la carte.
+  location: z.object(
+    { lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) },
+    { required_error: "Choisissez votre adresse de livraison sur la carte.", invalid_type_error: "Choisissez votre adresse de livraison sur la carte." }
+  ),
   items: z
     .array(
       z.object({
@@ -85,7 +91,12 @@ export async function POST(req: Request) {
 
   const settings = await getSettings();
   const itemsTotal = lines.reduce((s, l) => s + l.price * l.quantity, 0);
-  const deliveryFee = settings.deliveryFee;
+  // Frais recalcules ici depuis le point de depart (on ne fait pas confiance au navigateur).
+  const origin = settings.shopLat != null && settings.shopLng != null ? { lat: settings.shopLat, lng: settings.shopLng } : null;
+  const quote = quoteDelivery(origin, data.location, settings.deliveryFee);
+  const deliveryFee = quote.kind === "fee" ? quote.fee : 0;
+  const deliveryToConfirm = quote.kind === "contact";
+  const deliveryKm = quote.km;
   const total = itemsTotal + deliveryFee;
 
   const order = await prisma.$transaction(async (tx) => {
@@ -100,6 +111,10 @@ export async function POST(req: Request) {
         paymentMethod: "LIVRAISON",
         itemsTotal,
         deliveryFee,
+        deliveryLat: data.location.lat,
+        deliveryLng: data.location.lng,
+        deliveryKm,
+        deliveryToConfirm,
         total,
         items: {
           create: lines.map((l) => ({

@@ -7,5 +7,7 @@ export const metadata: Metadata = { title: "Mon panier" };
 
 export default async function PanierPage() {
   const settings = await getSettings();
-  return <CartView deliveryFee={settings.deliveryFee} whatsapp={settings.whatsapp} />;
+  const origin =
+    settings.shopLat != null && settings.shopLng != null ? { lat: settings.shopLat, lng: settings.shopLng } : null;
+  return <CartView deliveryFee={settings.deliveryFee} whatsapp={settings.whatsapp} origin={origin} />;
 }

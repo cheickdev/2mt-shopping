@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { parseFcfa } from "@/lib/money";
+import { parseFcfa, formatFcfa } from "@/lib/money";
+import LocationPicker from "@/components/LocationPicker";
+import { DELIVERY_TIERS, MAX_DELIVERY_KM, type LatLng } from "@/lib/delivery";
 
 export interface SettingsData {
   shopName: string;
@@ -12,6 +14,8 @@ export interface SettingsData {
   adBudget: number;
   ownerName: string;
   partnerName: string;
+  shopLat: number | null;
+  shopLng: number | null;
 }
 
 export default function SettingsForm({ initial }: { initial: SettingsData }) {
@@ -23,6 +27,9 @@ export default function SettingsForm({ initial }: { initial: SettingsData }) {
   const [adBudget, setAdBudget] = useState(String(initial.adBudget));
   const [ownerName, setOwnerName] = useState(initial.ownerName);
   const [partnerName, setPartnerName] = useState(initial.partnerName);
+  const [shopPoint, setShopPoint] = useState<LatLng | null>(
+    initial.shopLat != null && initial.shopLng != null ? { lat: initial.shopLat, lng: initial.shopLng } : null
+  );
   const [ownerPassword, setOwnerPassword] = useState("");
   const [partnerPassword, setPartnerPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -43,6 +50,8 @@ export default function SettingsForm({ initial }: { initial: SettingsData }) {
         adBudget: parseFcfa(adBudget),
         ownerName: ownerName.trim() || "Propriétaire",
         partnerName: partnerName.trim() || "Partenaire",
+        shopLat: shopPoint ? shopPoint.lat : null,
+        shopLng: shopPoint ? shopPoint.lng : null,
       };
       if (ownerPassword.trim()) payload.ownerPassword = ownerPassword.trim();
       if (partnerPassword.trim()) payload.partnerPassword = partnerPassword.trim();
@@ -82,8 +91,26 @@ export default function SettingsForm({ initial }: { initial: SettingsData }) {
         <span className="note">Ex. Mali : 223 + votre numéro (sans le +, sans espaces).</span>
       </div>
       <div className="field">
-        <label>Frais de livraison Bamako (FCFA)</label>
+        <label>Point de départ des livraisons</label>
+        <LocationPicker value={shopPoint} onChange={setShopPoint} pinLabel="Départ" height={280} />
+        <span className="note">
+          {shopPoint
+            ? "Le prix de la livraison est calculé selon la distance entre ce point et l'adresse du client."
+            : "Pas encore réglé : touchez la carte à l'endroit d'où partent les livraisons (ou « Ma position actuelle »), puis Enregistrer."}
+        </span>
+        <span className="note">
+          Tarifs : {DELIVERY_TIERS.map((t, i) => `${i === 0 ? "0" : DELIVERY_TIERS[i - 1].maxKm}–${t.maxKm} km : ${formatFcfa(t.fee)}`).join(" · ")} · plus de {MAX_DELIVERY_KM} km : à convenir.
+        </span>
+        {shopPoint && (
+          <button type="button" className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setShopPoint(null)}>
+            Effacer le point
+          </button>
+        )}
+      </div>
+      <div className="field">
+        <label>Frais de livraison par défaut (FCFA)</label>
         <input className="input" inputMode="numeric" value={deliveryFee} onChange={(e) => setDeliveryFee(e.target.value)} />
+        <span className="note">Utilisés seulement si le point de départ n'est pas réglé.</span>
       </div>
       <div className="field">
         <label>Dépenses pub du mois (FCFA)</label>

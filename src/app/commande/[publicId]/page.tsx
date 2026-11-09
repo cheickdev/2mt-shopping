@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatFcfa } from "@/lib/money";
+import { formatKm } from "@/lib/delivery";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Ma commande" };
@@ -54,8 +55,19 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
             </div>
           ))}
         </div>
-        <div className="line"><span>Livraison</span><strong>{formatFcfa(order.deliveryFee)}</strong></div>
-        <div className="line total"><span>Total à payer à la livraison</span><span>{formatFcfa(order.total)}</span></div>
+        <div className="line">
+          <span>Livraison{order.deliveryKm != null ? ` (${formatKm(order.deliveryKm)})` : ""}</span>
+          <strong>{order.deliveryToConfirm ? "À convenir" : formatFcfa(order.deliveryFee)}</strong>
+        </div>
+        <div className="line total">
+          <span>Total à payer à la livraison{order.deliveryToConfirm ? " (hors livraison)" : ""}</span>
+          <span>{formatFcfa(order.total)}</span>
+        </div>
+        {order.deliveryToConfirm && (
+          <p className="note" style={{ margin: 0 }}>
+            Votre adresse est éloignée : nous vous appelons pour convenir du prix de la livraison.
+          </p>
+        )}
         <p className="note" style={{ margin: 0 }}>
           Livraison à <strong>{order.quartier}</strong> · Tél : {order.customerPhone}
         </p>

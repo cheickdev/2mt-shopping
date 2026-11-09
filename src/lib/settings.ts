@@ -8,6 +8,8 @@ export interface ShopSettings {
   adBudget: number;
   ownerName: string;
   partnerName: string;
+  shopLat: number | null; // point de depart des livraisons
+  shopLng: number | null;
 }
 
 const DEFAULTS: ShopSettings = {
@@ -18,6 +20,8 @@ const DEFAULTS: ShopSettings = {
   adBudget: 0,
   ownerName: "Propriétaire",
   partnerName: "Partenaire",
+  shopLat: null,
+  shopLng: null,
 };
 
 /** Lit les parametres de la boutique (cree la ligne par defaut si absente). */
@@ -36,6 +40,8 @@ export async function getSettings(): Promise<ShopSettings> {
       adBudget: s.adBudget,
       ownerName: s.ownerName,
       partnerName: s.partnerName,
+      shopLat: s.shopLat,
+      shopLng: s.shopLng,
     };
   } catch {
     return DEFAULTS;

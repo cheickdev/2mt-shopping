@@ -55,7 +55,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <span>{p.name}</span>
       </nav>
 
-      <ProductDetail product={product} whatsapp={settings.whatsapp} deliveryFee={settings.deliveryFee} />
+      <ProductDetail product={product} whatsapp={settings.whatsapp} deliveryFee={settings.shopLat != null ? 0 : settings.deliveryFee} />
     </>
   );
 }
