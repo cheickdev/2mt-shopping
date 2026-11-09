@@ -6,6 +6,9 @@ import { detectBackground, type Background } from "@/components/admin/plainBackg
 
 export const MAX_PHOTOS = 8;
 
+/** Ajoute des photos sans doublons, dans la limite autorisee. */
+const merge = (a: string[], b: string[]) => [...new Set([...a, ...b])].slice(0, MAX_PHOTOS);
+
 interface Result {
   url: string;
   thumb: string;
@@ -44,7 +47,7 @@ export default function GalleryEditor({
     setBusy("Préparation des photos…");
     try {
       const urls = await Promise.all(files.map((f) => fileToDataUrl(f)));
-      onChange([...value, ...urls]);
+      onChange(merge(value, urls));
     } finally {
       setBusy(null);
     }
@@ -115,7 +118,7 @@ export default function GalleryEditor({
       }
     }
     setBusy(null);
-    if (added.length) onChange([...value, ...added]);
+    if (added.length) onChange(merge(value, added));
     if (failed) setError(`${failed} image(s) n'ont pas pu être récupérées (site protégé). Choisissez-en d'autres.`);
     else {
       setSearching(false);
