@@ -1,7 +1,7 @@
 /* =========================================================================
    2MT - Shopping — systeme visuel
    Palette : neutres chauds + accent framboise + touche or.
-   Clair par defaut, variante sombre via prefers-color-scheme.
+   Theme clair uniquement (pas de theme sombre), pour tout le monde.
    ========================================================================= */
 :root {
   --bg: #fbf7f6;
@@ -19,42 +19,7 @@
   --radius: 14px;
   --shadow: 0 6px 24px rgba(60, 20, 40, 0.08);
   --maxw: 1080px;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #161114;
-    --surface: #211a1e;
-    --surface-2: #2a2127;
-    --fg: #f3ecef;
-    --muted: #ab9ca4;
-    --line: #342a30;
-    --accent: #e85089;
-    --accent-ink: #1a0f14;
-    --gold: #d6a24e;
-    --ok: #4cc47f;
-    --warn: #e0953a;
-    --danger: #e86a5c;
-    --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #161114;
-  --surface: #211a1e;
-  --surface-2: #2a2127;
-  --fg: #f3ecef;
-  --muted: #ab9ca4;
-  --line: #342a30;
-  --accent: #e85089;
-  --accent-ink: #1a0f14;
-  --gold: #d6a24e;
-  --ok: #4cc47f;
-  --warn: #e0953a;
-  --danger: #e86a5c;
-  --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
-  color-scheme: dark;
+  color-scheme: only light; /* refuse aussi l assombrissement force de certains navigateurs */
 }
 
 * { box-sizing: border-box; }
