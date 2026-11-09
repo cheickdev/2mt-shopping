@@ -315,7 +315,8 @@ button, input, select, textarea { font: inherit; }
 
 /* ---------- Carte (choix de l'adresse) ---------- */
 .map-picker { display: flex; flex-direction: column; gap: 8px; }
-.map-box { width: 100%; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; z-index: 0; background: var(--surface-2); }
+.map-box-wrap { position: relative; }
+.map-box { width: 100%; height: 100%; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; z-index: 0; background: var(--surface-2); }
 .map-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .map-pin-wrap { background: none; border: none; }
 .map-pin { display: flex; flex-direction: column; align-items: center; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
@@ -371,3 +372,17 @@ button.suggest-item { width: 100%; background: none; border: none; text-align: l
   background: var(--surface); color: var(--fg); font: inherit; font-size: 14px; cursor: pointer;
 }
 .theme-toggle button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-weight: 700; }
+
+/* ---------- Carte en plein ecran ---------- */
+.map-full-btn {
+  position: absolute; left: 10px; bottom: 26px; z-index: 500;
+  background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 11px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow);
+}
+.map-picker.map-full {
+  position: fixed; inset: 0; z-index: 200; background: var(--bg);
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+}
+.map-full .map-box-wrap { flex: 1; min-height: 0; }
+.map-full-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.map-full-bar strong { font-family: "Poppins", sans-serif; font-size: 15px; }

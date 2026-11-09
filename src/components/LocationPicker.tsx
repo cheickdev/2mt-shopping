@@ -37,6 +37,23 @@ export default function LocationPicker({
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [placeHint, setPlaceHint] = useState<string | null>(null);
+  const [full, setFull] = useState(false);
+
+  // Plein ecran : la carte occupe tout l'ecran (fonctionne aussi sur iPhone).
+  useEffect(() => {
+    // Leaflet doit recalculer sa taille apres le changement de dimensions.
+    const t = setTimeout(() => mapRef.current?.invalidateSize(), 50);
+    if (!full) return () => clearTimeout(t);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFull(false);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(t);
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [full]);
 
   // Quartier choisi : on centre la carte dessus ; le client touche ensuite son point exact.
   function goToPlace(p: Place) {
@@ -184,17 +201,38 @@ export default function LocationPicker({
   }
 
   return (
-    <div className="map-picker">
+    <div className={`map-picker ${full ? "map-full" : ""}`}>
+      {full && (
+        <div className="map-full-bar">
+          <strong>Choisissez votre emplacement</strong>
+          <button type="button" className="btn sm" onClick={() => setFull(false)} aria-label="Quitter le plein écran">
+            ✕ Quitter
+          </button>
+        </div>
+      )}
       <MapPlaceSearch onSelect={goToPlace} />
       {placeHint && !value && (
         <div className="map-hint">Carte centrée sur {placeHint} : touchez maintenant votre emplacement exact.</div>
       )}
-      <div ref={el} className="map-box" style={{ height }} />
+      <div className="map-box-wrap" style={full ? undefined : { height }}>
+        <div ref={el} className="map-box" />
+        {!full && (
+          <button type="button" className="map-full-btn" onClick={() => setFull(true)} aria-label="Afficher la carte en plein écran">
+            ⛶ Plein écran
+          </button>
+        )}
+      </div>
       <div className="map-actions">
         <button type="button" className="btn ghost sm" onClick={locateMe} disabled={locating}>
           {locating ? "Localisation…" : "📍 Ma position actuelle"}
         </button>
-        <span className="note">ou touchez la carte / déplacez l'épingle</span>
+        {full && value ? (
+          <button type="button" className="btn sm" onClick={() => setFull(false)}>
+            ✓ Valider cet emplacement
+          </button>
+        ) : (
+          <span className="note">ou touchez la carte / déplacez l'épingle</span>
+        )}
       </div>
       {geoError && <div className="note" style={{ color: "var(--danger)" }}>{geoError}</div>}
     </div>
