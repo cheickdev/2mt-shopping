@@ -147,7 +147,11 @@ export default function CartView({
 
         <div className="field">
           <label>Adresse de livraison</label>
-          <LocationPicker value={location} onChange={setLocation} />
+          <LocationPicker
+            value={location}
+            onChange={setLocation}
+            onPlace={(p) => setForm((f) => (f.quartier.trim() ? f : { ...f, quartier: p.name }))}
+          />
           {quote?.kind === "contact" ? (
             <div className="delivery-far">
               Votre adresse est éloignée : le prix de la livraison est à convenir avec le vendeur.

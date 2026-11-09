@@ -4,9 +4,11 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import type { Map as LMap, Marker, Polyline } from "leaflet";
 import { BAMAKO, type LatLng } from "@/lib/delivery";
+import MapPlaceSearch, { type Place } from "@/components/MapPlaceSearch";
 
 // Carte (OpenStreetMap, sans cle API) pour choisir un point :
-// toucher la carte ou deplacer l'epingle, ou utiliser « Ma position ».
+// rechercher son quartier pour y centrer la carte, puis toucher la carte ou
+// deplacer l'epingle, ou utiliser « Ma position ».
 // Si `origin` est fourni (point de depart de la boutique), on l'affiche avec
 // une ligne jusqu'au point choisi.
 export default function LocationPicker({
@@ -15,12 +17,14 @@ export default function LocationPicker({
   origin = null,
   height = 300,
   pinLabel = "Livraison",
+  onPlace,
 }: {
   value: LatLng | null;
   onChange: (p: LatLng) => void;
   origin?: LatLng | null;
   height?: number;
   pinLabel?: string;
+  onPlace?: (p: Place) => void; // quartier choisi dans la recherche
 }) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LMap | null>(null);
@@ -32,6 +36,14 @@ export default function LocationPicker({
   const [ready, setReady] = useState(false);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [placeHint, setPlaceHint] = useState<string | null>(null);
+
+  // Quartier choisi : on centre la carte dessus ; le client touche ensuite son point exact.
+  function goToPlace(p: Place) {
+    mapRef.current?.setView([p.lat, p.lng], 15);
+    setPlaceHint(p.name);
+    onPlace?.(p);
+  }
 
   // Creation de la carte (Leaflet ne fonctionne que dans le navigateur).
   useEffect(() => {
@@ -153,6 +165,10 @@ export default function LocationPicker({
 
   return (
     <div className="map-picker">
+      <MapPlaceSearch onSelect={goToPlace} />
+      {placeHint && !value && (
+        <div className="map-hint">Carte centrée sur {placeHint} : touchez maintenant votre emplacement exact.</div>
+      )}
       <div ref={el} className="map-box" style={{ height }} />
       <div className="map-actions">
         <button type="button" className="btn ghost sm" onClick={locateMe} disabled={locating}>
