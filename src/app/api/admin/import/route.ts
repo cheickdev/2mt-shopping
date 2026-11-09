@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdmin } from "@/lib/admin-auth";
 import { safeFetch } from "@/lib/safe-fetch";
+import { ebayConfigured, ebayItemId, importFromEbay } from "@/lib/ebay";
 import { fromShopifyJson, looksLikeShopify, parseProductPage, type ImportedProduct } from "@/lib/product-import";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,26 @@ export async function POST(req: Request) {
   }
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message }, { status: 400 });
+
+  // eBay : lecture via l'API officielle (les pages eBay refusent les serveurs).
+  const ebayId = ebayItemId(parsed.data.url);
+  if (ebayId) {
+    if (!ebayConfigured()) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Pour importer depuis eBay, il faut ajouter les clés gratuites de l'API eBay (EBAY_CLIENT_ID et EBAY_CLIENT_SECRET) dans Vercel. En attendant, ajoutez le produit à la main.",
+        },
+        { status: 422 }
+      );
+    }
+    try {
+      return NextResponse.json({ ok: true, product: await importFromEbay(parsed.data.url, ebayId) });
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 502 });
+    }
+  }
 
   try {
     const page = await safeFetch(parsed.data.url);
@@ -49,6 +70,14 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ ok: true, product });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message || "Lecture impossible." }, { status: 502 });
+    const msg = (e as Error).message || "Lecture impossible.";
+    // 401/403/429/503 : le site refuse les lectures automatiques.
+    if (/répondu (401|403|429|503)/.test(msg)) {
+      return NextResponse.json(
+        { ok: false, error: `${msg} Ce site refuse la lecture automatique de ses pages : ajoutez le produit à la main.` },
+        { status: 502 }
+      );
+    }
+    return NextResponse.json({ ok: false, error: msg }, { status: 502 });
   }
 }

@@ -43,3 +43,16 @@ Comme pour une appli Next.js standard :
 - Paiement en ligne Mobile Money (Orange/Moov via CinetPay).
 - Comptes clients, historique, parrainage.
 - Notifications automatiques.
+
+## Import de produits depuis eBay (optionnel)
+
+eBay refuse la lecture directe de ses pages par un serveur. L'import passe donc
+par l'API officielle d'eBay (gratuite) :
+
+1. Créer un compte sur https://developer.ebay.com et une application (« Production »).
+2. Récupérer l'**App ID (Client ID)** et le **Cert ID (Client Secret)**.
+3. Sur Vercel → Settings → Environment Variables, ajouter :
+   - `EBAY_CLIENT_ID` = App ID
+   - `EBAY_CLIENT_SECRET` = Cert ID
+   - `EBAY_MARKETPLACE` (optionnel) = `EBAY_US` (défaut), `EBAY_FR`, `EBAY_GB`…
+4. Redéployer. Les liens `ebay.com/itm/…` s'importent alors avec photos et variétés.
