@@ -350,3 +350,24 @@ button, input, select, textarea { font: inherit; }
   border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 10px; padding: 10px 12px; font-size: 14px;
 }
 .delivery-far a { color: var(--accent); font-weight: 600; }
+
+/* ---------- Suggestions de recherche ---------- */
+.search { position: relative; }
+.suggest {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 60;
+  list-style: none; margin: 0; padding: 6px 0; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+  max-height: min(70vh, 460px); overflow-y: auto;
+}
+.suggest-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; text-decoration: none; color: var(--fg); }
+.suggest-item.active, .suggest-item:hover { background: var(--surface-2); }
+.suggest-icon { flex: none; width: 22px; text-align: center; }
+.suggest-text { display: flex; flex-direction: column; min-width: 0; }
+.suggest-label { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggest-detail { color: var(--muted); font-size: 12px; }
+.suggest-empty { padding: 10px 14px; color: var(--muted); font-size: 14px; }
+.suggest-all {
+  display: block; padding: 10px 14px; border-top: 1px solid var(--line); margin-top: 4px;
+  color: var(--accent); font-weight: 600; font-size: 14px; text-decoration: none;
+}
+.card-variant { font-size: 12px; color: var(--accent); font-weight: 600; }

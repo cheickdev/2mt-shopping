@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCart } from "@/components/cart";
 import SideMenu from "@/components/SideMenu";
+import SearchBox from "@/components/SearchBox";
 import type { MenuCategory, MenuUser } from "@/lib/menu";
 
 export default function Header({
@@ -31,10 +32,7 @@ export default function Header({
             <b>{first}</b> <span className="tag">{rest.join(" ")}</span>
           </a>
 
-          <form action="/" method="get" className="search search-wide" role="search">
-            <input name="q" className="input" placeholder="Rechercher un article…" aria-label="Rechercher" />
-            <button className="search-btn" aria-label="Lancer la recherche"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg></button>
-          </form>
+          <SearchBox className="search-wide" />
 
           <nav className="nav-actions">
             {user ? (
@@ -56,10 +54,7 @@ export default function Header({
         </div>
 
         <div className="nav-search-row">
-          <form action="/" method="get" className="search" role="search">
-            <input name="q" className="input" placeholder="Rechercher un article…" aria-label="Rechercher" />
-            <button className="search-btn" aria-label="Lancer la recherche"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg></button>
-          </form>
+          <SearchBox />
         </div>
 
         {categories.length > 0 && (

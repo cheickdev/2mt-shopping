@@ -1,29 +1,16 @@
 import { prisma } from "@/lib/db";
 import { getCategories } from "@/lib/categories";
 import ProductCard, { ProductCardData } from "@/components/ProductCard";
+import { matchProduct, productHref, queryWords, type ProductMatch } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 
-function productsQuery(activeCat: string | null) {
+function productsQuery(activeCat: string | null, withVariantImages = false) {
   return prisma.product.findMany({
     where: { active: true, archived: false, ...(activeCat ? { category: activeCat } : {}) },
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-    include: { variants: { where: { active: true }, select: { stock: true, label: true } } },
+    include: { variants: { where: { active: true }, orderBy: { position: "asc" }, select: { id: true, stock: true, label: true, imageData: withVariantImages } } },
   });
-}
-
-// Recherche insensible aux accents et a la casse ("serum" trouve "Sérum").
-// Elle porte aussi sur les varietes (ex. "Rouge", "Pointure 39", "100ml").
-const norm = (t: string) =>
-  t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-
-function matches(
-  p: { name: string; category: string; description: string; sizes: string; variants: { label: string }[] },
-  q: string,
-) {
-  const labels = p.variants.map((v) => v.label).join(" ");
-  const hay = norm(`${p.name} ${p.category} ${p.description} ${p.sizes.replace(/,/g, " ")} ${labels}`);
-  return norm(q).split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
 }
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ cat?: string; q?: string }> }) {
@@ -36,12 +23,36 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
   // Tolere une base pas encore initialisee (affiche une boutique vide plutot
   // qu'une erreur, le temps que l'admin clique sur "Initialiser la base").
   let products: Awaited<ReturnType<typeof productsQuery>> = [];
+  const matchesBySlug = new Map<string, ProductMatch>();
   try {
-    products = await productsQuery(activeCat);
-    if (q) products = products.filter((p) => matches(p, q));
+    products = await productsQuery(activeCat, !!q);
+    if (q) {
+      const words = queryWords(q);
+      const scored = products
+        .map((p) => ({ p, m: matchProduct(p, words) }))
+        .filter((x) => x.m !== null)
+        .sort((a, b) => b.m!.score - a.m!.score);
+      products = scored.map((x) => x.p);
+      for (const x of scored) matchesBySlug.set(x.p.slug, x.m!);
+    }
   } catch {
     products = [];
   }
+
+  const variantLink = (p: (typeof products)[number]): Partial<ProductCardData> => {
+    const slug = p.slug;
+    const m = matchesBySlug.get(slug);
+    if (m?.variants[0]) {
+      const v = p.variants.find((x) => x.id === m.variants[0].id);
+      return {
+        href: productHref(slug, { variantId: m.variants[0].id }),
+        matched: m.variants[0].label,
+        ...(v?.imageData ? { imageData: v.imageData } : {}),
+      };
+    }
+    if (m?.options[0]) return { href: productHref(slug, { option: m.options[0] }), matched: m.options[0] };
+    return {};
+  };
 
   const toCard = (p: (typeof products)[number]): ProductCardData => {
     const available = p.variants.length > 0 ? p.variants.some((v) => v.stock > 0) : p.stock > 0;
@@ -53,6 +64,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
       available,
       imageData: p.imageData,
       featured: p.featured,
+      // Recherche trouvee via une variete : la carte ouvre directement cette variete.
+      ...variantLink(p),
     };
   };
 

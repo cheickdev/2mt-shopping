@@ -8,12 +8,14 @@ export interface ProductCardData {
   available: boolean;
   imageData: string | null;
   featured: boolean;
+  href?: string; // lien (par defaut : la fiche produit)
+  matched?: string; // variete trouvee par la recherche
 }
 
 export default function ProductCard({ p }: { p: ProductCardData }) {
   const out = !p.available;
   return (
-    <a href={`/produit/${p.slug}`} className="card">
+    <a href={p.href ?? `/produit/${p.slug}`} className="card">
       <div className="thumb">
         {p.featured && <span className="chip gold">Coup de cœur</span>}
         {p.imageData ? (
@@ -25,6 +27,7 @@ export default function ProductCard({ p }: { p: ProductCardData }) {
       <div className="card-body">
         <div className="card-cat">{p.category}</div>
         <div className="card-name">{p.name}</div>
+        {p.matched && <div className="card-variant">Variété : {p.matched}</div>}
         <div className="card-foot">
           <div className="price">{formatFcfa(p.price)}</div>
           {out ? <span className="stock-out">Rupture</span> : null}

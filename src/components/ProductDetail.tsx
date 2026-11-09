@@ -25,15 +25,29 @@ export interface ProductDetailData {
   sizes: string[]; // options simples (sans stock/photo), si pas de variete
 }
 
-export default function ProductDetail({ product, whatsapp, deliveryFee }: { product: ProductDetailData; whatsapp: string; deliveryFee: number }) {
+export default function ProductDetail({
+  product,
+  whatsapp,
+  deliveryFee,
+  initialVariantId,
+  initialOption,
+}: {
+  product: ProductDetailData;
+  whatsapp: string;
+  deliveryFee: number;
+  initialVariantId?: string; // variete preselectionnee (ex. depuis la recherche)
+  initialOption?: string;
+}) {
   const router = useRouter();
   const { add } = useCart();
 
   const hasVariants = product.variants.length > 0;
   const firstAvailable = product.variants.find((v) => v.stock > 0) ?? product.variants[0] ?? null;
 
-  const [variantId, setVariantId] = useState<string | null>(hasVariants ? firstAvailable?.id ?? null : null);
-  const [size, setSize] = useState(!hasVariants ? product.sizes[0] ?? "" : "");
+  const [variantId, setVariantId] = useState<string | null>(
+    hasVariants ? initialVariantId ?? firstAvailable?.id ?? null : null
+  );
+  const [size, setSize] = useState(!hasVariants ? initialOption ?? product.sizes[0] ?? "" : "");
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -79,6 +93,7 @@ export default function ProductDetail({ product, whatsapp, deliveryFee }: { prod
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div className="card-cat">{product.category}</div>
         <h1>{product.name}</h1>
+        {selectedVariant && <div className="card-variant" style={{ fontSize: 14, marginTop: -8 }}>Variété : {selectedVariant.label}</div>}
         <div className="p-price">{formatFcfa(product.price)}</div>
         {product.description && <p className="desc">{product.description}</p>}
 

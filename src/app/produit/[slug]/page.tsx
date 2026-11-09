@@ -21,8 +21,15 @@ function parseSizes(s: string): string[] {
   return s.split(",").map((x) => x.trim()).filter(Boolean);
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ v?: string; opt?: string }>;
+}) {
   const { slug } = await params;
+  const { v, opt } = await searchParams;
   const p = await prisma.product.findUnique({
     where: { slug },
     include: { variants: { where: { active: true }, orderBy: { position: "asc" } } },
@@ -55,7 +62,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <span>{p.name}</span>
       </nav>
 
-      <ProductDetail product={product} whatsapp={settings.whatsapp} deliveryFee={settings.shopLat != null ? 0 : settings.deliveryFee} />
+      <ProductDetail
+        product={product}
+        initialVariantId={product.variants.some((x) => x.id === v) ? v : undefined}
+        initialOption={opt && product.sizes.includes(opt) ? opt : undefined}
+        whatsapp={settings.whatsapp}
+        deliveryFee={settings.shopLat != null ? 0 : settings.deliveryFee}
+      />
     </>
   );
 }
