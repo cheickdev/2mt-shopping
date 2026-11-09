@@ -1,0 +1,198 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { fileToDataUrl, remoteToDataUrl } from "@/components/admin/imageResize";
+
+export const MAX_PHOTOS = 8;
+
+interface Result {
+  url: string;
+  thumb: string;
+  title: string;
+  source: string;
+}
+
+// Photos d'un produit : plusieurs photos, la 1re est la principale.
+// Ajout depuis le telephone ou par recherche sur internet (nom du produit).
+export default function GalleryEditor({
+  value,
+  onChange,
+  searchName,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  searchName: string;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [searching, setSearching] = useState(false);
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<Result[] | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [provider, setProvider] = useState<string | null>(null);
+
+  const room = MAX_PHOTOS - value.length;
+
+  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = [...(e.target.files ?? [])].slice(0, room);
+    e.target.value = "";
+    if (!files.length) return;
+    setBusy("Préparation des photos…");
+    try {
+      const urls = await Promise.all(files.map((f) => fileToDataUrl(f)));
+      onChange([...value, ...urls]);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runSearch(term: string) {
+    if (term.trim().length < 2) return;
+    setError(null);
+    setResults(null);
+    setPicked([]);
+    setBusy("Recherche…");
+    try {
+      const res = await fetch(`/api/admin/images?q=${encodeURIComponent(term.trim())}`);
+      const d = await res.json();
+      if (!d.ok) setError(d.error ?? "Recherche impossible.");
+      else {
+        setResults(d.results);
+        setProvider(d.provider);
+      }
+    } catch {
+      setError("Impossible de contacter le serveur.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function openSearch() {
+    setSearching(true);
+    setQ(searchName);
+    runSearch(searchName);
+  }
+
+  function togglePick(url: string) {
+    setPicked((p) => (p.includes(url) ? p.filter((x) => x !== url) : p.length < room ? [...p, url] : p));
+  }
+
+  async function addPicked() {
+    setError(null);
+    const added: string[] = [];
+    let failed = 0;
+    for (let i = 0; i < picked.length; i++) {
+      setBusy(`Téléchargement ${i + 1}/${picked.length}…`);
+      try {
+        added.push(await remoteToDataUrl(picked[i]));
+      } catch {
+        failed++;
+      }
+    }
+    setBusy(null);
+    if (added.length) onChange([...value, ...added]);
+    if (failed) setError(`${failed} image(s) n'ont pas pu être récupérées (site protégé). Choisissez-en d'autres.`);
+    else {
+      setSearching(false);
+      setResults(null);
+    }
+    setPicked([]);
+  }
+
+  const move = (i: number, to: number) => {
+    const v = [...value];
+    const [x] = v.splice(i, 1);
+    v.splice(to, 0, x);
+    onChange(v);
+  };
+
+  return (
+    <div className="gal">
+      {value.length > 0 ? (
+        <div className="gal-list">
+          {value.map((src, i) => (
+            <div key={i} className={`gal-item ${i === 0 ? "main" : ""}`}>
+              <img src={src} alt="" />
+              {i === 0 ? (
+                <span className="gal-badge">Principale</span>
+              ) : (
+                <button type="button" className="gal-mk" onClick={() => move(i, 0)} title="Mettre en photo principale">
+                  ★ Principale
+                </button>
+              )}
+              <button type="button" className="gal-x" onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label="Retirer la photo">
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="note" style={{ margin: 0 }}>Aucune photo pour le moment.</p>
+      )}
+
+      {room > 0 ? (
+        <div className="gal-actions">
+          <button type="button" className="btn ghost sm" onClick={() => fileRef.current?.click()} disabled={!!busy}>
+            📷 Depuis le téléphone
+          </button>
+          <button type="button" className="btn ghost sm" onClick={openSearch} disabled={!!busy || searchName.trim().length < 2}>
+            🔎 Chercher sur internet
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={onFiles} />
+        </div>
+      ) : (
+        <p className="note" style={{ margin: 0 }}>{MAX_PHOTOS} photos maximum.</p>
+      )}
+      {searchName.trim().length < 2 && room > 0 && <span className="note">Écrivez d'abord le nom du produit pour chercher des photos.</span>}
+      {busy && <span className="note">{busy}</span>}
+
+      {searching && (
+        <div className="gal-search">
+          <form
+            className="imp-url"
+            onSubmit={(e) => {
+              e.preventDefault();
+              runSearch(q);
+            }}
+          >
+            <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nom du produit" />
+            <button className="btn sm" disabled={!!busy}>Chercher</button>
+            <button type="button" className="btn ghost sm" onClick={() => setSearching(false)}>Fermer</button>
+          </form>
+          {error && <div className="error">{error}</div>}
+          {results && results.length === 0 && <p className="note">Aucune image trouvée. Essayez un autre nom.</p>}
+          {results && results.length > 0 && (
+            <>
+              <p className="note" style={{ margin: 0 }}>
+                Touchez les photos à ajouter ({picked.length}/{room})
+                {provider === "openverse" && " · Images libres (Openverse) : pour les photos de marques, configurez la recherche Google."}
+              </p>
+              <div className="gal-results">
+                {results.map((r) => {
+                  const n = picked.indexOf(r.url);
+                  return (
+                    <button
+                      type="button"
+                      key={r.url}
+                      className={`gal-res ${n >= 0 ? "on" : ""}`}
+                      onClick={() => togglePick(r.url)}
+                      title={`${r.title}${r.source ? " — " + r.source : ""}`}
+                    >
+                      <img src={r.thumb} alt={r.title} loading="lazy" referrerPolicy="no-referrer" />
+                      {n >= 0 && <span className="gal-num">{n + 1}</span>}
+                      {r.source && <span className="gal-src">{r.source}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <button type="button" className="btn block" onClick={addPicked} disabled={!picked.length || !!busy}>
+                {busy ?? `Ajouter ${picked.length || ""} photo${picked.length > 1 ? "s" : ""}`}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

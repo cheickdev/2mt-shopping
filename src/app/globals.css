@@ -468,3 +468,34 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
 .imp-images.small .imp-img { width: 56px; height: 56px; }
 .imp-img.none { font-size: 11px; color: var(--muted); background: var(--surface-2); }
 .imp-off { opacity: .55; }
+
+/* ---------- Photos du produit (admin) ---------- */
+.gal { display: flex; flex-direction: column; gap: 10px; }
+.gal-list { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; }
+.gal-item { position: relative; flex: none; width: 92px; height: 92px; border-radius: 10px; overflow: hidden; border: 2px solid var(--line); background: #fff; }
+.gal-item.main { border-color: var(--accent); }
+.gal-item img { width: 100%; height: 100%; object-fit: cover; }
+.gal-badge, .gal-mk {
+  position: absolute; left: 4px; bottom: 4px; font-size: 10px; font-weight: 700; border-radius: 6px; padding: 2px 5px; border: none;
+}
+.gal-badge { background: var(--accent); color: #fff; }
+.gal-mk { background: rgba(255,255,255,.92); color: #231a1f; cursor: pointer; }
+.gal-x {
+  position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(0,0,0,.6); color: #fff; font-size: 12px; line-height: 1;
+}
+.gal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.gal-search { display: flex; flex-direction: column; gap: 10px; border: 1px dashed var(--line); border-radius: 12px; padding: 10px; background: var(--surface-2); }
+.gal-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; max-height: 420px; overflow-y: auto; }
+.gal-res { position: relative; aspect-ratio: 1; padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid var(--line); background: #fff; cursor: pointer; }
+.gal-res img { width: 100%; height: 100%; object-fit: contain; }
+.gal-res.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+.gal-num { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.gal-src { position: absolute; left: 0; right: 0; bottom: 0; font-size: 9px; background: rgba(0,0,0,.55); color: #fff; padding: 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Galerie de la fiche produit ---------- */
+.gallery-wrap { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.thumb-btn { flex: none; width: 64px; height: 64px; padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid var(--line); background: var(--surface-2); cursor: pointer; }
+.thumb-btn img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-btn.on { border-color: var(--accent); }

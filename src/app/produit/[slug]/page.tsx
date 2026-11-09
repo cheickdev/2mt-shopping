@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatFcfa } from "@/lib/money";
+import { galleryOf } from "@/lib/gallery";
 import ProductDetail, { ProductDetailData } from "@/components/ProductDetail";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,10 @@ export default async function ProductPage({
   const { v, opt } = await searchParams;
   const p = await prisma.product.findUnique({
     where: { slug },
-    include: { variants: { where: { active: true }, orderBy: { position: "asc" } } },
+    include: {
+      variants: { where: { active: true }, orderBy: { position: "asc" } },
+      images: { orderBy: { position: "asc" } },
+    },
   });
   if (!p || !p.active || p.archived) notFound();
 
@@ -45,6 +49,7 @@ export default async function ProductPage({
     description: p.description,
     price: p.price,
     image: p.imageData,
+    images: galleryOf(p),
     stock: p.stock,
     variants: p.variants.map((v) => ({ id: v.id, label: v.label, stock: v.stock, image: v.imageData })),
     sizes: parseSizes(p.sizes),

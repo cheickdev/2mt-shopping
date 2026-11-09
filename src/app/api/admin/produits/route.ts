@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
+import { galleryField, saveGallery } from "@/lib/gallery";
 import { slugify, randomSuffix } from "@/lib/slug";
 
 const schema = z.object({
@@ -13,6 +14,7 @@ const schema = z.object({
   stock: z.number().int().nonnegative().default(0),
   sizes: z.string().optional().default(""),
   imageData: z.string().nullable().optional(),
+  gallery: galleryField.optional(), // toutes les photos (la 1re = principale)
   featured: z.boolean().optional().default(false),
   active: z.boolean().optional().default(true),
 });
@@ -55,5 +57,6 @@ export async function POST(req: Request) {
       active: d.active ?? true,
     },
   });
+  if (d.gallery) await saveGallery(product.id, d.gallery);
   return NextResponse.json({ ok: true, id: product.id });
 }

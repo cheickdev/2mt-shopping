@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatFcfa, parseFcfa } from "@/lib/money";
-import { fileToDataUrl } from "@/components/admin/imageResize";
 import VariantsPanel, { VariantRow } from "@/components/admin/VariantsPanel";
 import { norm, queryWords } from "@/lib/search";
 import ImportProduct from "@/components/admin/ImportProduct";
+import GalleryEditor from "@/components/admin/GalleryEditor";
 
 export interface ProductRow {
   id: string;
@@ -19,6 +19,7 @@ export interface ProductRow {
   stock: number;
   sizes: string;
   imageData: string | null;
+  images: string[]; // toutes les photos (la 1re = principale)
   featured: boolean;
   active: boolean;
   archived: boolean;
@@ -29,7 +30,6 @@ const marginPct = (price: number, cost: number) => (price > 0 ? Math.round(((pri
 
 function ProductEditor({ p }: { p: ProductRow }) {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
   // Un seul panneau ouvert a la fois : edition du produit ou de ses varietes.
   const [panel, setPanel] = useState<"edit" | "variants" | null>(null);
   const open = panel === "edit";
@@ -42,20 +42,16 @@ function ProductEditor({ p }: { p: ProductRow }) {
   const [sizes, setSizes] = useState(p.sizes);
   const [description, setDescription] = useState(p.description);
   const [featured, setFeatured] = useState(p.featured);
-  const [image, setImage] = useState<string | null>(p.imageData);
+  const [gallery, setGallery] = useState<string[]>(p.images);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const image = gallery[0] ?? null;
 
   const hasVariants = p.variants.length > 0;
   const totalStock = hasVariants ? p.variants.reduce((n, v) => n + (v.active ? v.stock : 0), 0) : p.stock;
   const margin = marginPct(parseFcfa(price), parseFcfa(cost));
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setImage(await fileToDataUrl(f));
-  }
-
+  
   async function patch(body: Record<string, unknown>) {
     const res = await fetch(`/api/admin/produits/${p.id}`, {
       method: "PATCH",
@@ -78,7 +74,7 @@ function ProductEditor({ p }: { p: ProductRow }) {
         stock: parseInt(stock, 10) || 0,
         sizes: sizes.trim(),
         featured,
-        imageData: image,
+        gallery,
       });
       setMsg(data.ok ? { ok: true, text: "Enregistré ✓" } : { ok: false, text: data.error ?? "Erreur" });
       if (data.ok) router.refresh();
@@ -142,17 +138,9 @@ function ProductEditor({ p }: { p: ProductRow }) {
 
           {open && (
             <div className="pe-form">
-              <div className="pe-photo">
-                {image ? <img src={image} alt="" /> : <span className="pe-ph">Pas de photo</span>}
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button type="button" className="btn ghost sm" onClick={() => fileRef.current?.click()}>
-                    📷 {image ? "Changer la photo" : "Ajouter une photo"}
-                  </button>
-                  {image && (
-                    <button type="button" className="btn ghost sm" onClick={() => setImage(null)}>Retirer</button>
-                  )}
-                </div>
-                <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+              <div className="field pe-full">
+                <label>Photos ({gallery.length})</label>
+                <GalleryEditor value={gallery} onChange={setGallery} searchName={name} />
               </div>
 
               <div className="field pe-full">
@@ -228,18 +216,12 @@ function ProductEditor({ p }: { p: ProductRow }) {
 
 function CreateForm({ onImport }: { onImport: () => void }) {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", category: "", price: "", cost: "", stock: "", sizes: "", description: "", featured: false });
-  const [image, setImage] = useState<string | null>(null);
+  const [gallery, setGallery] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImage(await fileToDataUrl(file));
-  }
 
   async function create() {
     setSaving(true);
@@ -256,7 +238,7 @@ function CreateForm({ onImport }: { onImport: () => void }) {
           cost: parseFcfa(f.cost),
           stock: parseInt(f.stock, 10) || 0,
           sizes: f.sizes.trim(),
-          imageData: image,
+          gallery,
           featured: f.featured,
         }),
       });
@@ -266,7 +248,7 @@ function CreateForm({ onImport }: { onImport: () => void }) {
         return;
       }
       setF({ name: "", category: "CHAUSSURES", price: "", cost: "", stock: "", sizes: "", description: "", featured: false });
-      setImage(null);
+      setGallery([]);
       setOpen(false);
       router.refresh();
     } catch {
@@ -316,13 +298,9 @@ function CreateForm({ onImport }: { onImport: () => void }) {
           <label>Stock</label>
           <input className="input" inputMode="numeric" value={f.stock} onChange={(e) => setF({ ...f, stock: e.target.value })} placeholder="10" />
         </div>
-        <div className="field">
-          <label>Photo</label>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <button type="button" className="btn ghost sm" onClick={() => fileRef.current?.click()}>Choisir une photo</button>
-            {image && <img src={image} alt="" style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 8 }} />}
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-          </div>
+        <div className="field" style={{ gridColumn: "1 / -1" }}>
+          <label>Photos ({gallery.length})</label>
+          <GalleryEditor value={gallery} onChange={setGallery} searchName={f.name} />
         </div>
         <div className="field" style={{ gridColumn: "1 / -1" }}>
           <label>Description</label>

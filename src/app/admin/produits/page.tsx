@@ -3,6 +3,7 @@ import { currentRole } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { getAllCategories } from "@/lib/categories";
 import { getSettings } from "@/lib/settings";
+import { galleryOf } from "@/lib/gallery";
 import AdminShell from "../AdminShell";
 import ProductsManager, { ProductRow } from "@/components/admin/ProductsManager";
 
@@ -15,7 +16,7 @@ export default async function AdminProducts() {
   const [products, categories, settings] = await Promise.all([
     prisma.product.findMany({
       orderBy: [{ archived: "asc" }, { createdAt: "desc" }],
-      include: { variants: { orderBy: { position: "asc" } } },
+      include: { variants: { orderBy: { position: "asc" } }, images: { orderBy: { position: "asc" } } },
     }),
     getAllCategories(),
     getSettings(),
@@ -32,6 +33,7 @@ export default async function AdminProducts() {
     stock: p.stock,
     sizes: p.sizes,
     imageData: p.imageData,
+    images: galleryOf(p),
     featured: p.featured,
     active: p.active,
     archived: p.archived,

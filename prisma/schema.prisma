@@ -32,6 +32,18 @@ model Product {
 
   variants Variant[]
   items    OrderItem[]
+  images   ProductImage[] // photos supplementaires (la principale reste imageData)
+}
+
+// Photos supplementaires d'un produit (galerie), dans l'ordre d'affichage.
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  imageData String // Data URL (base64)
+  position  Int     @default(0)
+
+  @@index([productId])
 }
 
 // Une variete d'un produit (ex. une pointure, une contenance, une couleur).

@@ -29,3 +29,11 @@ export async function fileToDataUrl(file: File, maxDim = 900, quality = 0.82): P
   ctx.drawImage(img, 0, 0, width, height);
   return canvas.toDataURL("image/jpeg", quality);
 }
+
+/** Recupere une image d'un autre site via le relais du serveur, puis la reduit. */
+export async function remoteToDataUrl(url: string): Promise<string> {
+  const res = await fetch(`/api/admin/import/image?url=${encodeURIComponent(url)}`);
+  if (!res.ok) throw new Error(await res.text());
+  const blob = await res.blob();
+  return fileToDataUrl(new File([blob], "image", { type: blob.type }));
+}

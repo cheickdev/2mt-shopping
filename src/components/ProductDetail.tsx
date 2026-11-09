@@ -20,6 +20,7 @@ export interface ProductDetailData {
   description: string;
   price: number;
   image: string | null; // photo principale
+  images: string[]; // toutes les photos du produit (la 1re = principale)
   stock: number; // stock produit (utilise seulement s'il n'y a pas de variete)
   variants: VariantView[];
   sizes: string[]; // options simples (sans stock/photo), si pas de variete
@@ -52,7 +53,12 @@ export default function ProductDetail({
   const [added, setAdded] = useState(false);
 
   const selectedVariant = hasVariants ? product.variants.find((v) => v.id === variantId) ?? null : null;
-  const displayImage = (hasVariants ? selectedVariant?.image : null) ?? product.image;
+  // Galerie : photo de la variete choisie (si elle en a une), sinon les photos du produit.
+  const [shown, setShown] = useState<string | null>(null);
+  const variantImage = hasVariants ? selectedVariant?.image ?? null : null;
+  const photos = [...(variantImage ? [variantImage] : []), ...product.images.filter((x) => x !== variantImage)];
+  const displayImage = (shown && photos.includes(shown) ? shown : null) ?? photos[0] ?? product.image;
+  const cartImage = variantImage ?? product.image;
   const availableStock = hasVariants ? selectedVariant?.stock ?? 0 : product.stock;
   const out = availableStock <= 0;
   const variantLabel = hasVariants ? selectedVariant?.label ?? "" : size;
@@ -64,7 +70,7 @@ export default function ProductDetail({
       slug: product.slug,
       name: product.name,
       price: product.price,
-      image: displayImage,
+      image: cartImage,
       variant: variantLabel,
       variantId: hasVariants ? variantId : null,
       quantity: qty,
@@ -86,8 +92,26 @@ export default function ProductDetail({
 
   return (
     <div className="product">
-      <div className="gallery">
-        {displayImage ? <img src={displayImage} alt={product.name} /> : <div className="ph">Photo à venir</div>}
+      <div className="gallery-wrap">
+        <div className="gallery">
+          {displayImage ? <img src={displayImage} alt={product.name} /> : <div className="ph">Photo à venir</div>}
+        </div>
+        {photos.length > 1 && (
+          <div className="thumbs" role="list">
+            {photos.map((src, i) => (
+              <button
+                key={i}
+                type="button"
+                role="listitem"
+                className={`thumb-btn ${src === displayImage ? "on" : ""}`}
+                onClick={() => setShown(src)}
+                aria-label={`Photo ${i + 1}`}
+              >
+                <img src={src} alt="" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -108,7 +132,10 @@ export default function ProductDetail({
                     key={v.id}
                     type="button"
                     className={`size ${variantId === v.id ? "active" : ""}`}
-                    onClick={() => setVariantId(v.id)}
+                    onClick={() => {
+                      setVariantId(v.id);
+                      setShown(null);
+                    }}
                     disabled={vout}
                     style={vout ? { opacity: 0.5, textDecoration: "line-through" } : undefined}
                     title={vout ? "Rupture" : `${v.stock} en stock`}

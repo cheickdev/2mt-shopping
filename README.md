@@ -56,3 +56,14 @@ par l'API officielle d'eBay (gratuite) :
    - `EBAY_CLIENT_SECRET` = Cert ID
    - `EBAY_MARKETPLACE` (optionnel) = `EBAY_US` (défaut), `EBAY_FR`, `EBAY_GB`…
 4. Redéployer. Les liens `ebay.com/itm/…` s'importent alors avec photos et variétés.
+
+## Recherche de photos sur internet (admin)
+
+Dans la fiche d'un produit, « 🔎 Chercher sur internet » propose des photos
+d'après le nom du produit.
+
+- **Sans configuration** : images libres de droits via Openverse (gratuit),
+  mais peu de photos de produits de marque.
+- **Recommandé** : résultats Google Images via [serper.dev](https://serper.dev)
+  (2 500 recherches offertes à l'inscription). Ajouter sur Vercel la variable
+  `SERPER_API_KEY` = votre clé, puis redéployer.

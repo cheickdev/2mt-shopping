@@ -12,6 +12,15 @@ export const SCHEMA_UPGRADES: string[] = [
   `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "deliveryLng" DOUBLE PRECISION`,
   `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "deliveryKm" DOUBLE PRECISION`,
   `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "deliveryToConfirm" BOOLEAN NOT NULL DEFAULT false`,
+  // Plusieurs photos par produit.
+  `CREATE TABLE IF NOT EXISTS "ProductImage" (
+    "id" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "imageData" TEXT NOT NULL,
+    "position" INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT "ProductImage_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "ProductImage_productId_idx" ON "ProductImage"("productId")`,
 ];
 
 function createClient() {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
+import { galleryField, saveGallery } from "@/lib/gallery";
 
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
@@ -15,6 +16,7 @@ const patchSchema = z.object({
   featured: z.boolean().optional(),
   active: z.boolean().optional(),
   archived: z.boolean().optional(),
+  gallery: galleryField.optional(), // toutes les photos (la 1re = principale)
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -35,8 +37,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ ok: false, error: "Image trop lourde." }, { status: 400 });
   }
 
+  const { gallery, ...fields } = parsed.data;
   try {
-    await prisma.product.update({ where: { id }, data: parsed.data });
+    await prisma.product.update({ where: { id }, data: fields });
+    if (gallery) await saveGallery(id, gallery);
   } catch {
     return NextResponse.json({ ok: false, error: "Produit introuvable." }, { status: 404 });
   }
@@ -52,6 +56,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await prisma.$transaction([
       prisma.orderItem.updateMany({ where: { productId: id }, data: { productId: null } }),
       prisma.variant.deleteMany({ where: { productId: id } }),
+      prisma.productImage.deleteMany({ where: { productId: id } }),
       prisma.product.delete({ where: { id } }),
     ]);
   } catch {

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseFcfa } from "@/lib/money";
-import { fileToDataUrl } from "@/components/admin/imageResize";
+import { remoteToDataUrl } from "@/components/admin/imageResize";
+import { MAX_PHOTOS } from "@/components/admin/GalleryEditor";
 import type { ImportedProduct } from "@/lib/product-import";
 
 interface VariantDraft {
@@ -11,14 +12,6 @@ interface VariantDraft {
   label: string;
   stock: string;
   image: string | null; // URL d'origine
-}
-
-/** Recupere une image d'un autre site via notre relais, puis la reduit. */
-async function remoteToDataUrl(url: string): Promise<string> {
-  const res = await fetch(`/api/admin/import/image?url=${encodeURIComponent(url)}`);
-  if (!res.ok) throw new Error(await res.text());
-  const blob = await res.blob();
-  return fileToDataUrl(new File([blob], "image", { type: blob.type }));
 }
 
 const proxied = (u: string) => `/api/admin/import/image?url=${encodeURIComponent(u)}`;
@@ -37,7 +30,8 @@ export default function ImportProduct({ onClose }: { onClose: () => void }) {
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
   const [stock, setStock] = useState("");
-  const [mainImage, setMainImage] = useState<string | null>(null);
+  // Photos choisies, dans l'ordre (la 1re = principale).
+  const [photos, setPhotos] = useState<string[]>([]);
   const [variants, setVariants] = useState<VariantDraft[]>([]);
   const [creating, setCreating] = useState<string | null>(null);
 
@@ -61,7 +55,7 @@ export default function ImportProduct({ onClose }: { onClose: () => void }) {
       setData(p);
       setName(p.name);
       setDescription(p.description);
-      setMainImage(p.images[0] ?? null);
+      setPhotos(p.images.slice(0, 1));
       setVariants(p.variants.map((v) => ({ include: true, label: v.label, stock: "", image: v.image })));
     } catch {
       setError("Impossible de contacter le serveur.");
@@ -79,13 +73,13 @@ export default function ImportProduct({ onClose }: { onClose: () => void }) {
     if (!data) return;
     setError(null);
     try {
-      setCreating("Préparation de la photo…");
-      let imageData: string | null = null;
-      if (mainImage) {
+      const gallery: string[] = [];
+      for (let i = 0; i < photos.length; i++) {
+        setCreating(`Photo ${i + 1}/${photos.length}…`);
         try {
-          imageData = await remoteToDataUrl(mainImage);
+          gallery.push(await remoteToDataUrl(photos[i]));
         } catch {
-          imageData = null; // on cree quand meme le produit, sans photo
+          /* photo inaccessible : on continue sans elle */
         }
       }
       setCreating("Création du produit…");
@@ -100,7 +94,7 @@ export default function ImportProduct({ onClose }: { onClose: () => void }) {
           cost: parseFcfa(cost),
           stock: chosen.length ? 0 : parseInt(stock, 10) || 0,
           sizes: "",
-          imageData,
+          gallery,
           featured: false,
         }),
       });
@@ -172,19 +166,25 @@ export default function ImportProduct({ onClose }: { onClose: () => void }) {
 
           {data.images.length > 0 && (
             <div className="field">
-              <label>Photo principale (touchez pour choisir)</label>
+              <label>Photos à garder ({photos.length}/{MAX_PHOTOS}) — la n°1 sera la principale</label>
               <div className="imp-images">
-                {data.images.map((src) => (
-                  <button
-                    type="button"
-                    key={src}
-                    className={`imp-img ${mainImage === src ? "on" : ""}`}
-                    onClick={() => setMainImage(mainImage === src ? null : src)}
-                    aria-pressed={mainImage === src}
-                  >
-                    <img src={proxied(src)} alt="" loading="lazy" />
-                  </button>
-                ))}
+                {data.images.map((src) => {
+                  const n = photos.indexOf(src);
+                  return (
+                    <button
+                      type="button"
+                      key={src}
+                      className={`imp-img gal-res ${n >= 0 ? "on" : ""}`}
+                      onClick={() =>
+                        setPhotos((ph) => (n >= 0 ? ph.filter((x) => x !== src) : ph.length < MAX_PHOTOS ? [...ph, src] : ph))
+                      }
+                      aria-pressed={n >= 0}
+                    >
+                      <img src={proxied(src)} alt="" loading="lazy" />
+                      {n >= 0 && <span className="gal-num">{n + 1}</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
