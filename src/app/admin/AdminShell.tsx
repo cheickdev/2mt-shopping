@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/admin/produits", label: "Produits", ownerOnly: false },
   { href: "/admin/commandes", label: "Commandes", ownerOnly: false },
   { href: "/admin/parametres", label: "Paramètres", ownerOnly: true },
+  { href: "/admin/compte", label: "Mon compte", ownerOnly: false },
 ];
 
 export default function AdminShell({

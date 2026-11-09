@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { formatFcfa, parseFcfa } from "@/lib/money";
 import { fileToDataUrl } from "@/components/admin/imageResize";
 import VariantsPanel, { VariantRow } from "@/components/admin/VariantsPanel";
+import { norm, queryWords } from "@/lib/search";
+import ImportProduct from "@/components/admin/ImportProduct";
 
 export interface ProductRow {
   id: string;
@@ -28,7 +30,10 @@ const marginPct = (price: number, cost: number) => (price > 0 ? Math.round(((pri
 function ProductEditor({ p }: { p: ProductRow }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState(false);
+  // Un seul panneau ouvert a la fois : edition du produit ou de ses varietes.
+  const [panel, setPanel] = useState<"edit" | "variants" | null>(null);
+  const open = panel === "edit";
+  const showVariants = panel === "variants";
   const [name, setName] = useState(p.name);
   const [category, setCategory] = useState(p.category);
   const [price, setPrice] = useState(String(p.price));
@@ -40,7 +45,6 @@ function ProductEditor({ p }: { p: ProductRow }) {
   const [image, setImage] = useState<string | null>(p.imageData);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [showVariants, setShowVariants] = useState(false);
 
   const hasVariants = p.variants.length > 0;
   const totalStock = hasVariants ? p.variants.reduce((n, v) => n + (v.active ? v.stock : 0), 0) : p.stock;
@@ -102,7 +106,7 @@ function ProductEditor({ p }: { p: ProductRow }) {
   }
 
   return (
-    <div className={`pe-card ${open ? "open" : ""}`}>
+    <div className={`pe-card ${panel ? "open" : ""}`}>
       {/* Resume (toujours visible) */}
       <div className="pe-head">
         {image ? <img className="pe-thumb" src={image} alt="" /> : <span className="pe-thumb pe-ph">Photo</span>}
@@ -128,11 +132,11 @@ function ProductEditor({ p }: { p: ProductRow }) {
       ) : (
         <>
           <div className="pe-actions">
-            <button className={`btn sm ${open ? "ghost" : ""}`} onClick={() => setOpen((o) => !o)}>
+            <button className={`btn sm ${open ? "ghost" : ""}`} onClick={() => setPanel(open ? null : "edit")}>
               {open ? "Fermer" : "✏️ Modifier"}
             </button>
-            <button className="btn ghost sm" onClick={() => setShowVariants((v) => !v)}>
-              Variétés ({p.variants.length}) {showVariants ? "▲" : "▼"}
+            <button className={`btn sm ${showVariants ? "ghost" : ""}`} onClick={() => setPanel(showVariants ? null : "variants")}>
+              {showVariants ? "Fermer" : `🎨 Variétés (${p.variants.length})`}
             </button>
           </div>
 
@@ -212,6 +216,7 @@ function ProductEditor({ p }: { p: ProductRow }) {
 
           {showVariants && (
             <div className="pe-variants">
+              <h4 className="pe-title">Variétés de « {p.name} »</h4>
               <VariantsPanel productId={p.id} variants={p.variants} />
             </div>
           )}
@@ -221,7 +226,7 @@ function ProductEditor({ p }: { p: ProductRow }) {
   );
 }
 
-function CreateForm() {
+function CreateForm({ onImport }: { onImport: () => void }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -272,7 +277,12 @@ function CreateForm() {
   }
 
   if (!open) {
-    return <button className="btn" style={{ marginBottom: 16 }} onClick={() => setOpen(true)}>+ Ajouter un produit</button>;
+    return (
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <button className="btn" onClick={() => setOpen(true)}>+ Ajouter un produit</button>
+        <button className="btn ghost" onClick={onImport}>⬇️ Importer depuis un lien</button>
+      </div>
+    );
   }
 
   return (
@@ -323,7 +333,7 @@ function CreateForm() {
         </label>
         <p className="note" style={{ gridColumn: "1 / -1", margin: 0 }}>
           💡 Pour des variétés (pointures, contenances, couleurs) avec <strong>chacune son stock et sa photo</strong>,
-          créez d'abord le produit, puis ouvrez <strong>« Variétés »</strong> sur sa ligne. Le « Stock » ci-dessus
+          créez d'abord le produit, puis touchez <strong>« Variétés »</strong> sur sa carte. Le « Stock » ci-dessus
           ne sert que si le produit n'a aucune variété.
         </p>
       </div>
@@ -338,9 +348,17 @@ function CreateForm() {
 
 export default function ProductsManager({ products, categories }: { products: ProductRow[]; categories: string[] }) {
   const [view, setView] = useState<"actifs" | "archives">("actifs");
+  const [q, setQ] = useState("");
+  const [importing, setImporting] = useState(false);
   const active = products.filter((p) => !p.archived);
   const archived = products.filter((p) => p.archived);
-  const shown = view === "actifs" ? active : archived;
+  // Recherche dynamique : filtre pendant la saisie (nom, categorie, description, varietes).
+  const words = queryWords(q);
+  const shown = (view === "actifs" ? active : archived).filter((p) => {
+    if (words.length === 0) return true;
+    const hay = norm(`${p.name} ${p.category} ${p.description} ${p.sizes} ${p.variants.map((v) => v.label).join(" ")}`);
+    return words.every((w) => hay.includes(w));
+  });
 
   return (
     <>
@@ -357,7 +375,20 @@ export default function ProductsManager({ products, categories }: { products: Pr
         </button>
       </div>
 
-      {view === "actifs" && <CreateForm />}
+      {view === "actifs" &&
+        (importing ? <ImportProduct onClose={() => setImporting(false)} /> : <CreateForm onImport={() => setImporting(true)} />)}
+
+      <div className="pe-search">
+        <input
+          className="input"
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="🔍 Rechercher un produit (nom, catégorie, variété…)"
+          aria-label="Rechercher un produit"
+        />
+        {q && <span className="note">{shown.length} résultat{shown.length > 1 ? "s" : ""}</span>}
+      </div>
 
       {view === "archives" && (
         <p className="note">
@@ -368,7 +399,11 @@ export default function ProductsManager({ products, categories }: { products: Pr
 
       {shown.length === 0 ? (
         <p className="note">
-          {view === "actifs" ? "Aucun produit. Cliquez « Ajouter un produit » pour commencer." : "Aucun produit archivé."}
+          {q
+            ? `Aucun produit ne correspond à « ${q} ».`
+            : view === "actifs"
+              ? "Aucun produit. Cliquez « Ajouter un produit » pour commencer."
+              : "Aucun produit archivé."}
         </p>
       ) : (
         <div className="pe-list">

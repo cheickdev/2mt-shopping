@@ -440,3 +440,31 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
 @media (max-width: 380px) {
   .pe-form { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- Recherche produits admin + editeur de varietes ---------- */
+.pe-search { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.pe-title { margin: 4px 0 8px; font-size: 15px; font-family: "Poppins", sans-serif; overflow-wrap: anywhere; }
+.ve { display: flex; flex-direction: column; gap: 12px; }
+.ve-item { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.ve-item .pe-photo { margin-bottom: 0; }
+.ve-item .pe-photo img, .ve-item .pe-photo .pe-ph { width: 72px; height: 72px; }
+.ve-item .field { margin-bottom: 0; }
+.ve-fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
+.ve-new { border-style: dashed; background: var(--surface-2); }
+.account-name { display: inline-block; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+
+/* ---------- Import depuis un lien ---------- */
+.imp-url { display: flex; gap: 8px; flex-wrap: wrap; }
+.imp-url .input { flex: 1 1 220px; min-width: 0; }
+.imp-preview { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.imp-preview a { color: var(--accent); }
+.imp-images { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 6px; }
+.imp-img {
+  flex: none; width: 84px; height: 84px; padding: 0; border-radius: 10px; overflow: hidden; cursor: pointer;
+  border: 2px solid var(--line); background: #fff;
+}
+.imp-img img { width: 100%; height: 100%; object-fit: contain; }
+.imp-img.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+.imp-images.small .imp-img { width: 56px; height: 56px; }
+.imp-img.none { font-size: 11px; color: var(--muted); background: var(--surface-2); }
+.imp-off { opacity: .55; }

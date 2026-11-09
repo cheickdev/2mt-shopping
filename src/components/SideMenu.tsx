@@ -111,6 +111,7 @@ export default function SideMenu({
               <a className="drawer-link" href="/admin/produits">Produits</a>
               <a className="drawer-link" href="/admin/commandes">Commandes</a>
               {user.role === "owner" && <a className="drawer-link" href="/admin/parametres">Paramètres</a>}
+              <a className="drawer-link" href="/admin/compte">Mon compte ({user.name})</a>
               <button className="drawer-link" onClick={logout}>Se déconnecter</button>
             </section>
           )}

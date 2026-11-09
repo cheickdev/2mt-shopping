@@ -38,7 +38,7 @@ export default function Header({
             {user ? (
               <a href="/admin" className="account-link" title="Tableau de bord">
                 <small>Bonjour, {user.name}</small>
-                <strong><span className="hide-sm">Tableau de bord</span><span className="show-sm">Admin</span></strong>
+                <strong><span className="hide-sm">Tableau de bord</span><span className="show-sm account-name">👤 {user.name}</span></strong>
               </a>
             ) : (
               <a href="/admin/login" className="account-link">
