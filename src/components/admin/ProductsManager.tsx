@@ -25,18 +25,26 @@ export interface ProductRow {
 
 const marginPct = (price: number, cost: number) => (price > 0 ? Math.round(((price - cost) / price) * 100) : 0);
 
-function Row({ p }: { p: ProductRow }) {
+function ProductEditor({ p }: { p: ProductRow }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(p.name);
   const [category, setCategory] = useState(p.category);
   const [price, setPrice] = useState(String(p.price));
   const [cost, setCost] = useState(String(p.cost));
   const [stock, setStock] = useState(String(p.stock));
+  const [sizes, setSizes] = useState(p.sizes);
+  const [description, setDescription] = useState(p.description);
   const [featured, setFeatured] = useState(p.featured);
   const [image, setImage] = useState<string | null>(p.imageData);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [showVariants, setShowVariants] = useState(false);
+
+  const hasVariants = p.variants.length > 0;
+  const totalStock = hasVariants ? p.variants.reduce((n, v) => n + (v.active ? v.stock : 0), 0) : p.stock;
+  const margin = marginPct(parseFcfa(price), parseFcfa(cost));
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -44,47 +52,46 @@ function Row({ p }: { p: ProductRow }) {
     setImage(await fileToDataUrl(f));
   }
 
+  async function patch(body: Record<string, unknown>) {
+    const res = await fetch(`/api/admin/produits/${p.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }
+
   async function save() {
     setSaving(true);
     setMsg(null);
     try {
-      const res = await fetch(`/api/admin/produits/${p.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: category.trim() || p.category,
-          price: parseFcfa(price),
-          cost: parseFcfa(cost),
-          stock: parseInt(stock, 10) || 0,
-          featured,
-          imageData: image,
-        }),
+      const data = await patch({
+        name: name.trim() || p.name,
+        category: category.trim() || p.category,
+        description: description.trim(),
+        price: parseFcfa(price),
+        cost: parseFcfa(cost),
+        stock: parseInt(stock, 10) || 0,
+        sizes: sizes.trim(),
+        featured,
+        imageData: image,
       });
-      const data = await res.json();
-      setMsg(data.ok ? "Enregistré ✓" : data.error ?? "Erreur");
+      setMsg(data.ok ? { ok: true, text: "Enregistré ✓" } : { ok: false, text: data.error ?? "Erreur" });
       if (data.ok) router.refresh();
     } catch {
-      setMsg("Erreur réseau");
+      setMsg({ ok: false, text: "Erreur réseau" });
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleActive() {
-    await fetch(`/api/admin/produits/${p.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ active: !p.active }),
-    });
+    await patch({ active: !p.active });
     router.refresh();
   }
 
   async function setArchived(archived: boolean) {
-    await fetch(`/api/admin/produits/${p.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ archived }),
-    });
+    await patch({ archived });
     router.refresh();
   }
 
@@ -95,71 +102,122 @@ function Row({ p }: { p: ProductRow }) {
   }
 
   return (
-    <>
-    <tr>
-      <td>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button type="button" onClick={() => fileRef.current?.click()} style={{ border: "none", background: "none", cursor: "pointer", padding: 0 }}>
-            {image ? (
-              <img src={image} alt="" style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 8 }} />
-            ) : (
-              <span style={{ width: 46, height: 46, borderRadius: 8, background: "var(--surface-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--muted)" }}>Photo</span>
-            )}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-          <div style={{ minWidth: 0 }}>
-            <strong>{p.name}</strong>
-            <input
-              className="input sm"
-              list="cat-suggestions"
-              style={{ marginTop: 4, width: 140 }}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="Catégorie"
-            />
+    <div className={`pe-card ${open ? "open" : ""}`}>
+      {/* Resume (toujours visible) */}
+      <div className="pe-head">
+        {image ? <img className="pe-thumb" src={image} alt="" /> : <span className="pe-thumb pe-ph">Photo</span>}
+        <div className="pe-sum">
+          <strong className="pe-name">{p.name}</strong>
+          <span className="note">{p.category} · {formatFcfa(p.price)}</span>
+          <span className="pe-chips">
+            <span className={`pe-chip ${totalStock > 0 ? "" : "bad"}`}>
+              {totalStock > 0 ? `${totalStock} en stock` : "Rupture"}
+              {hasVariants ? ` · ${p.variants.length} variété${p.variants.length > 1 ? "s" : ""}` : ""}
+            </span>
+            {!p.active && !p.archived && <span className="pe-chip warn">Masqué</span>}
+            {p.featured && <span className="pe-chip gold">⭐ Coup de cœur</span>}
+          </span>
+        </div>
+      </div>
+
+      {p.archived ? (
+        <div className="pe-actions">
+          <button className="btn sm" onClick={() => setArchived(false)}>↩ Restaurer</button>
+          <button className="btn ghost sm" onClick={remove}>Supprimer définitivement</button>
+        </div>
+      ) : (
+        <>
+          <div className="pe-actions">
+            <button className={`btn sm ${open ? "ghost" : ""}`} onClick={() => setOpen((o) => !o)}>
+              {open ? "Fermer" : "✏️ Modifier"}
+            </button>
+            <button className="btn ghost sm" onClick={() => setShowVariants((v) => !v)}>
+              Variétés ({p.variants.length}) {showVariants ? "▲" : "▼"}
+            </button>
           </div>
-        </div>
-      </td>
-      <td><input className="input sm" style={{ width: 90 }} value={price} onChange={(e) => setPrice(e.target.value)} /></td>
-      <td><input className="input sm" style={{ width: 80 }} value={cost} onChange={(e) => setCost(e.target.value)} /></td>
-      <td style={{ fontWeight: 700, color: "var(--gold)" }}>{marginPct(parseFcfa(price), parseFcfa(cost))}%</td>
-      <td><input className="input sm" style={{ width: 60 }} value={stock} onChange={(e) => setStock(e.target.value)} /></td>
-      <td>
-        <label style={{ display: "inline-flex", gap: 4, alignItems: "center", cursor: "pointer" }}>
-          <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} /> ⭐
-        </label>
-      </td>
-      <td>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {p.archived ? (
-            <>
-              <button className="btn sm" onClick={() => setArchived(false)}>↩ Restaurer</button>
-              <button className="btn ghost sm" onClick={remove}>Supprimer définitivement</button>
-            </>
-          ) : (
-            <>
-              <button className="btn sm" onClick={save} disabled={saving}>{saving ? "…" : "Enregistrer"}</button>
-              <button className="btn ghost sm" onClick={() => setExpanded((e) => !e)}>
-                Variétés ({p.variants.length}) {expanded ? "▲" : "▼"}
-              </button>
-              <div style={{ display: "flex", gap: 4 }}>
-                <button className="btn ghost sm" onClick={toggleActive}>{p.active ? "Masquer" : "Afficher"}</button>
-                <button className="btn ghost sm" onClick={() => setArchived(true)} title="Archiver">🗑 Archiver</button>
+
+          {open && (
+            <div className="pe-form">
+              <div className="pe-photo">
+                {image ? <img src={image} alt="" /> : <span className="pe-ph">Pas de photo</span>}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" className="btn ghost sm" onClick={() => fileRef.current?.click()}>
+                    📷 {image ? "Changer la photo" : "Ajouter une photo"}
+                  </button>
+                  {image && (
+                    <button type="button" className="btn ghost sm" onClick={() => setImage(null)}>Retirer</button>
+                  )}
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
               </div>
-            </>
+
+              <div className="field pe-full">
+                <label>Nom</label>
+                <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div className="field pe-full">
+                <label>Catégorie</label>
+                <input className="input" list="cat-suggestions" value={category} onChange={(e) => setCategory(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Prix de vente (FCFA)</label>
+                <input className="input" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Coût d'achat (FCFA)</label>
+                <input className="input" inputMode="numeric" value={cost} onChange={(e) => setCost(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Stock</label>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  disabled={hasVariants}
+                />
+                {hasVariants && <span className="note">Géré par variété ({totalStock} au total).</span>}
+              </div>
+              <div className="field">
+                <label>Marge</label>
+                <div className="pe-margin">
+                  {margin}% · {formatFcfa(Math.max(0, parseFcfa(price) - parseFcfa(cost)))}
+                </div>
+              </div>
+              {!hasVariants && (
+                <div className="field pe-full">
+                  <label>Options simples (séparées par des virgules)</label>
+                  <input className="input" value={sizes} onChange={(e) => setSizes(e.target.value)} placeholder="Ex. 38,39,40 ou Rouge,Noir" />
+                </div>
+              )}
+              <div className="field pe-full">
+                <label>Description</label>
+                <textarea className="input" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+              </div>
+              <label className="pe-check pe-full">
+                <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} /> ⭐ Coup de cœur sur l'accueil
+              </label>
+
+              <div className="pe-full pe-save">
+                <button className="btn block" onClick={save} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
+                {msg && <div className={msg.ok ? "success" : "error"}>{msg.text}</div>}
+              </div>
+
+              <div className="pe-full pe-more">
+                <button className="btn ghost sm" onClick={toggleActive}>{p.active ? "🙈 Masquer de la boutique" : "👁 Afficher dans la boutique"}</button>
+                <button className="btn ghost sm" onClick={() => setArchived(true)}>🗑 Archiver</button>
+              </div>
+            </div>
           )}
-          {msg && <div className="note" style={{ fontSize: 12 }}>{msg}</div>}
-        </div>
-      </td>
-    </tr>
-    {expanded && (
-      <tr>
-        <td colSpan={7} style={{ background: "var(--surface-2)" }}>
-          <VariantsPanel productId={p.id} variants={p.variants} />
-        </td>
-      </tr>
-    )}
-    </>
+
+          {showVariants && (
+            <div className="pe-variants">
+              <VariantsPanel productId={p.id} variants={p.variants} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -313,15 +371,8 @@ export default function ProductsManager({ products, categories }: { products: Pr
           {view === "actifs" ? "Aucun produit. Cliquez « Ajouter un produit » pour commencer." : "Aucun produit archivé."}
         </p>
       ) : (
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr><th>Produit</th><th>Prix</th><th>Coût</th><th>Marge</th><th>Stock</th><th>⭐</th><th></th></tr>
-            </thead>
-            <tbody>
-              {shown.map((p) => <Row key={p.id} p={p} />)}
-            </tbody>
-          </table>
+        <div className="pe-list">
+          {shown.map((p) => <ProductEditor key={p.id} p={p} />)}
         </div>
       )}
     </>

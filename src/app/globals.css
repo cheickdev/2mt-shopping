@@ -227,13 +227,9 @@ button, input, select, textarea { font: inherit; }
   .product { grid-template-columns: minmax(0, 1fr); }
   .admin { grid-template-columns: minmax(0, 1fr); }
   .admin-main { padding: 16px; }
-  .admin-side {
-    flex-direction: row; align-items: center; overflow-x: auto;
-    border-right: none; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20;
-  }
-  .admin-side .logo { margin: 0 8px 0 0; }
-  .admin-nav { flex-direction: row; }
-  .admin-logout { margin: 0 0 0 auto; }
+  /* Sur telephone, pas de barre admin : tout est dans le menu ☰. */
+  .admin-side { display: none; }
+  .admin { min-height: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
@@ -307,7 +303,6 @@ button, input, select, textarea { font: inherit; }
 .drawer-sublink { display: block; padding: 8px 16px 8px 30px; text-decoration: none; color: var(--fg); font-size: 14px; }
 .drawer-sublink:hover { color: var(--accent); }
 .drawer-sublink.strong { color: var(--accent); font-weight: 600; }
-.admin-shop-link { padding: 10px 12px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
 
 @media (max-width: 760px) {
   .search-wide { display: none; }
@@ -413,4 +408,35 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
   .grid { gap: 10px; }
   .card-body { padding: 10px; }
   .hero { padding: 24px 16px; }
+}
+
+/* ---------- Edition des produits (cartes, adaptees au telephone) ---------- */
+.pe-list { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); align-items: start; }
+.pe-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.pe-card.open { border-color: var(--accent); }
+.pe-head { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.pe-thumb { flex: none; width: 64px; height: 64px; border-radius: 10px; object-fit: cover; }
+.pe-ph { background: var(--surface-2); color: var(--muted); font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
+.pe-sum { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pe-name { font-family: "Poppins", sans-serif; line-height: 1.25; overflow-wrap: anywhere; }
+.pe-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pe-chip { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+.pe-chip.bad { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.pe-chip.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.pe-chip.gold { background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); }
+.pe-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pe-actions .btn { flex: 1; }
+.pe-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+.pe-form .field { margin-bottom: 12px; }
+.pe-full, .pe-photo { grid-column: 1 / -1; }
+.pe-photo { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.pe-photo img, .pe-photo .pe-ph { width: 96px; height: 96px; border-radius: 12px; object-fit: cover; flex: none; }
+.pe-margin { padding: 11px 0; font-weight: 700; color: var(--gold); }
+.pe-check { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; cursor: pointer; }
+.pe-save { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.pe-more { display: flex; gap: 8px; flex-wrap: wrap; }
+.pe-variants { border-top: 1px solid var(--line); padding-top: 8px; }
+.input:disabled { opacity: .6; }
+@media (max-width: 380px) {
+  .pe-form { grid-template-columns: minmax(0, 1fr); }
 }

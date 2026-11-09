@@ -40,7 +40,6 @@ export default function AdminShell({
             </a>
           ))}
         </nav>
-        <a href="/" className="admin-shop-link">← Voir la boutique</a>
         {userName && (
           <div className="note" style={{ marginTop: "auto", marginBottom: 6 }}>
             Connecté : <strong style={{ color: "var(--fg)" }}>{userName}</strong>
