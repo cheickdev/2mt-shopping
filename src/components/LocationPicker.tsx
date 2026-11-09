@@ -57,10 +57,30 @@ export default function LocationPicker({
         [start.lat, start.lng],
         value || origin ? 14 : 12
       );
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      // Vue satellite par defaut (Esri World Imagery, sans cle API) avec les
+      // noms des lieux par-dessus ; bouton en haut a droite pour passer au plan.
+      const esri = "https://server.arcgisonline.com/ArcGIS/rest/services";
+      const satellite = L.layerGroup([
+        L.tileLayer(`${esri}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, {
+          maxZoom: 19,
+          maxNativeZoom: 18,
+          attribution: "Imagerie &copy; Esri, Maxar, Earthstar Geographics",
+        }),
+        L.tileLayer(`${esri}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`, {
+          maxZoom: 19,
+          maxNativeZoom: 18,
+        }),
+        L.tileLayer(`${esri}/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}`, {
+          maxZoom: 19,
+          maxNativeZoom: 18,
+          opacity: 0.6,
+        }),
+      ]).addTo(map);
+      const plan = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+      });
+      L.control.layers({ Satellite: satellite, Plan: plan }, undefined, { position: "topright" }).addTo(map);
       map.on("click", (e) => onChangeRef.current({ lat: e.latlng.lat, lng: e.latlng.lng }));
       mapRef.current = map;
       setReady(true);
