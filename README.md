@@ -62,8 +62,6 @@ par l'API officielle d'eBay (gratuite) :
 Dans la fiche d'un produit, « 🔎 Chercher sur internet » propose des photos
 d'après le nom du produit.
 
-- **Sans configuration** : images libres de droits via Openverse (gratuit),
-  mais peu de photos de produits de marque.
-- **Recommandé** : résultats Google Images via [serper.dev](https://serper.dev)
-  (2 500 recherches offertes à l'inscription). Ajouter sur Vercel la variable
+Elle utilise Google Images via [serper.dev](https://serper.dev) (2 500 recherches
+offertes à l'inscription) : ajouter sur Vercel la variable
   `SERPER_API_KEY` = votre clé, puis redéployer.

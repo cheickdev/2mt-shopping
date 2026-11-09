@@ -31,7 +31,6 @@ export default function GalleryEditor({
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [provider, setProvider] = useState<string | null>(null);
   // Analyse des fonds : url -> resultat (undefined = en cours, null = analyse impossible).
   const [bgs, setBgs] = useState<Record<string, Background | null>>({});
   const [plainOnly, setPlainOnly] = useState(true);
@@ -63,7 +62,6 @@ export default function GalleryEditor({
       if (!d.ok) setError(d.error ?? "Recherche impossible.");
       else {
         setResults(d.results);
-        setProvider(d.provider);
         analyse(d.results);
       }
     } catch {
@@ -204,7 +202,6 @@ export default function GalleryEditor({
               )}
               <p className="note" style={{ margin: 0 }}>
                 Touchez les photos à ajouter ({picked.length}/{room})
-                {provider === "openverse" && " · Images libres (Openverse) : pour les photos de marques, configurez la recherche Google."}
               </p>
               <div className="gal-results">
                 {visible.map((r) => {
