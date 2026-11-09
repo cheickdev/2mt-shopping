@@ -220,7 +220,7 @@ function CreateForm() {
   return (
     <div className="card" style={{ padding: 18, marginBottom: 18 }}>
       <h3 style={{ marginTop: 0 }}>Nouveau produit</h3>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 12 }}>
         <div className="field" style={{ gridColumn: "1 / -1" }}>
           <label>Nom</label>
           <input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Ex. Escarpins vernis rouge" />

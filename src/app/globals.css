@@ -42,6 +42,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* La page ne doit jamais deborder de l'ecran sur le cote. */
+html, body { max-width: 100%; overflow-x: clip; }
 body {
   background: var(--bg);
   color: var(--fg);
@@ -49,6 +51,8 @@ body {
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word; /* coupe un mot trop long en bout de ligne */
+  -webkit-text-size-adjust: 100%;
 }
 h1, h2, h3, .logo { font-family: "Poppins", system-ui, sans-serif; }
 img { max-width: 100%; display: block; }
@@ -118,7 +122,7 @@ button, input, select, textarea { font: inherit; }
 .section-head a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
 
 /* ---------- Grille produits ---------- */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 16px; }
 .card {
   background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--radius); overflow: hidden; text-decoration: none; color: inherit;
@@ -143,7 +147,7 @@ button, input, select, textarea { font: inherit; }
 .stock-out { color: var(--danger); font-size: 12px; font-weight: 600; }
 
 /* ---------- Fiche produit ---------- */
-.product { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 22px; align-items: start; }
+.product { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 22px; align-items: start; }
 .product .gallery { background: var(--surface-2); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; aspect-ratio: 1/1; }
 .product .gallery img { width: 100%; height: 100%; object-fit: cover; }
 .product .gallery .ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); }
@@ -220,8 +224,9 @@ button, input, select, textarea { font: inherit; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 760px) {
-  .product { grid-template-columns: 1fr; }
-  .admin { grid-template-columns: 1fr; }
+  .product { grid-template-columns: minmax(0, 1fr); }
+  .admin { grid-template-columns: minmax(0, 1fr); }
+  .admin-main { padding: 16px; }
   .admin-side {
     flex-direction: row; align-items: center; overflow-x: auto;
     border-right: none; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20;
@@ -386,3 +391,26 @@ button.suggest-item { width: 100%; background: none; border: none; text-align: l
 .map-full .map-box-wrap { flex: 1; min-height: 0; }
 .map-full-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .map-full-bar strong { font-family: "Poppins", sans-serif; font-size: 15px; }
+
+/* ---------- Petits ecrans (ex. 320 px) ---------- */
+/* Textes saisis par l'admin ou le client (noms, descriptions…) : un mot trop
+   long est coupe plutot que d'elargir la page. */
+h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
+.summary .line > span, .suggest-label, .drawer-sublink, .drawer-link { overflow-wrap: anywhere; }
+/* Boutons et liens courts : jamais coupes lettre par lettre. */
+.btn, .nav-actions > *, .cart-link, .account-link, .qty, .price, .pill { white-space: nowrap; flex-shrink: 0; }
+/* Boutons au texte variable (categories, varietes) : passent a la ligne si besoin. */
+.cta-row .btn, .size { white-space: normal; max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+.nav-inner { min-width: 0; }
+.nav-inner .logo { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 380px) {
+  .nav-inner { gap: 8px; padding-left: 12px; padding-right: 12px; }
+  .logo { font-size: 17px; }
+  .logo .tag { display: none; } /* « 2MT » seul sur les tres petits ecrans */
+  .nav-actions { gap: 8px; font-size: 13px; }
+  .burger { width: 36px; height: 36px; }
+  .container { padding-left: 12px; padding-right: 12px; }
+  .grid { gap: 10px; }
+  .card-body { padding: 10px; }
+  .hero { padding: 24px 16px; }
+}

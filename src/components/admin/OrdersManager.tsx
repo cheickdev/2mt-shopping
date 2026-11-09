@@ -144,7 +144,7 @@ export default function OrdersManager({ orders }: { orders: OrderRow[] }) {
       {shown.length === 0 ? (
         <p className="note">Aucune commande dans cette vue.</p>
       ) : (
-        <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+        <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fill, minmax(min(300px, 100%), 1fr))" }}>
           {shown.map((o) => <Card key={o.publicId} o={o} />)}
         </div>
       )}

@@ -101,7 +101,7 @@ export default function CartView({
   const waHref = whatsapp ? `https://wa.me/${whatsapp}?text=${waText}` : null;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24, marginTop: 20 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 24, marginTop: 20 }}>
       <div>
         <h1 style={{ marginTop: 0 }}>Mon panier</h1>
         <div>
