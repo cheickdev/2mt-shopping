@@ -44,11 +44,11 @@ export default function SideMenu({
       <div className="drawer-overlay" onClick={onClose} />
       <aside className="drawer" role="dialog" aria-modal="true" aria-label="Menu">
         <div className="drawer-head">
-          <span className="drawer-avatar" aria-hidden>{user ? user.name.charAt(0).toUpperCase() : "👤"}</span>
+          <span className="drawer-avatar" aria-hidden>{user ? user.name.charAt(0).toUpperCase() : "👋"}</span>
           {user ? (
             <a href="/admin">Bonjour, {user.name}</a>
           ) : (
-            <a href="/admin/login">Bonjour, identifiez-vous</a>
+            <span className="drawer-hello">Bonjour, bienvenue</span>
           )}
           <button className="drawer-close" onClick={onClose} aria-label="Fermer le menu">✕</button>
         </div>
@@ -97,20 +97,17 @@ export default function SideMenu({
             <p className="note drawer-pad">Livraison à Bamako · Paiement à la livraison</p>
           </section>
 
-          <section>
-            <h3>Espace administrateur</h3>
-            {user ? (
-              <>
-                <a className="drawer-link" href="/admin">Tableau de bord</a>
-                <a className="drawer-link" href="/admin/produits">Produits</a>
-                <a className="drawer-link" href="/admin/commandes">Commandes</a>
-                {user.role === "owner" && <a className="drawer-link" href="/admin/parametres">Paramètres</a>}
-                <button className="drawer-link" onClick={logout}>Se déconnecter</button>
-              </>
-            ) : (
-              <a className="drawer-link" href="/admin/login">Se connecter</a>
-            )}
-          </section>
+          {/* Espace administrateur : visible uniquement quand un admin est connecte. */}
+          {user && (
+            <section>
+              <h3>Espace administrateur</h3>
+              <a className="drawer-link" href="/admin">Tableau de bord</a>
+              <a className="drawer-link" href="/admin/produits">Produits</a>
+              <a className="drawer-link" href="/admin/commandes">Commandes</a>
+              {user.role === "owner" && <a className="drawer-link" href="/admin/parametres">Paramètres</a>}
+              <button className="drawer-link" onClick={logout}>Se déconnecter</button>
+            </section>
+          )}
         </div>
       </aside>
     </div>

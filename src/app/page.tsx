@@ -8,16 +8,21 @@ function productsQuery(activeCat: string | null) {
   return prisma.product.findMany({
     where: { active: true, archived: false, ...(activeCat ? { category: activeCat } : {}) },
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-    include: { variants: { where: { active: true }, select: { stock: true } } },
+    include: { variants: { where: { active: true }, select: { stock: true, label: true } } },
   });
 }
 
 // Recherche insensible aux accents et a la casse ("serum" trouve "Sérum").
+// Elle porte aussi sur les varietes (ex. "Rouge", "Pointure 39", "100ml").
 const norm = (t: string) =>
   t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-function matches(p: { name: string; category: string; description: string }, q: string) {
-  const hay = norm(`${p.name} ${p.category} ${p.description}`);
+function matches(
+  p: { name: string; category: string; description: string; sizes: string; variants: { label: string }[] },
+  q: string,
+) {
+  const labels = p.variants.map((v) => v.label).join(" ");
+  const hay = norm(`${p.name} ${p.category} ${p.description} ${p.sizes.replace(/,/g, " ")} ${labels}`);
   return norm(q).split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
 }
 
