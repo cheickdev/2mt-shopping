@@ -1,20 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart";
 import { formatFcfa } from "@/lib/money";
 import LocationPicker from "@/components/LocationPicker";
-import { quoteDelivery, formatKm, mapsLink, DELIVERY_TIERS, MAX_DELIVERY_KM, type LatLng } from "@/lib/delivery";
+import { mapsLink, type LatLng } from "@/lib/delivery";
+
+type Quote = { kind: "fee"; fee: number } | { kind: "contact" };
 
 export default function CartView({
-  deliveryFee,
   whatsapp,
-  origin = null,
 }: {
-  deliveryFee: number;
   whatsapp: string;
-  origin?: LatLng | null;
 }) {
   const router = useRouter();
   const { items, total, setQty, remove, clear, ready } = useCart();
@@ -23,8 +21,30 @@ export default function CartView({
   const [error, setError] = useState<string | null>(null);
   const [location, setLocation] = useState<LatLng | null>(null);
 
-  // Frais de livraison selon la distance (recalcules aussi par le serveur).
-  const quote = location ? quoteDelivery(origin, location, deliveryFee) : null;
+  // Prix de la livraison demande au serveur (la distance n'est pas montree au client).
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  useEffect(() => {
+    if (!location) return;
+    const ctrl = new AbortController();
+    setQuoting(true);
+    fetch("/api/livraison", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(location),
+      signal: ctrl.signal,
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.ok) setQuote(d.kind === "fee" ? { kind: "fee", fee: d.fee } : { kind: "contact" });
+        else setQuote(null);
+        setQuoting(false);
+      })
+      .catch(() => {
+        if (!ctrl.signal.aborted) setQuoting(false);
+      });
+    return () => ctrl.abort();
+  }, [location]);
   const fee = quote?.kind === "fee" ? quote.fee : 0;
   const grandTotal = total + (items.length ? fee : 0);
 
@@ -114,9 +134,9 @@ export default function CartView({
       <form className="summary" onSubmit={submit}>
         <div className="line"><span>Articles</span><strong>{formatFcfa(total)}</strong></div>
         <div className="line">
-          <span>Livraison{quote?.km != null ? ` (${formatKm(quote.km)})` : ""}</span>
+          <span>Livraison</span>
           <strong>
-            {!quote ? "Choisissez l'adresse" : quote.kind === "fee" ? formatFcfa(quote.fee) : "À convenir"}
+            {quoting ? "Calcul…" : !quote ? "Choisissez l'adresse" : quote.kind === "fee" ? formatFcfa(quote.fee) : "À convenir"}
           </strong>
         </div>
         <div className="line total">
@@ -127,10 +147,10 @@ export default function CartView({
 
         <div className="field">
           <label>Adresse de livraison</label>
-          <LocationPicker value={location} onChange={setLocation} origin={origin} />
+          <LocationPicker value={location} onChange={setLocation} />
           {quote?.kind === "contact" ? (
             <div className="delivery-far">
-              Vous êtes à plus de {MAX_DELIVERY_KM} km : le prix de la livraison est à convenir avec le vendeur.
+              Votre adresse est éloignée : le prix de la livraison est à convenir avec le vendeur.
               Vous pouvez valider la commande, nous vous appellerons pour fixer le prix
               {whatsapp ? (
                 <>
@@ -142,10 +162,6 @@ export default function CartView({
               ) : null}
               .
             </div>
-          ) : origin ? (
-            <span className="note">
-              Tarifs : {DELIVERY_TIERS.map((t, i) => `${i === 0 ? "0" : DELIVERY_TIERS[i - 1].maxKm}–${t.maxKm} km : ${formatFcfa(t.fee)}`).join(" · ")} · au-delà : à convenir.
-            </span>
           ) : null}
         </div>
 
@@ -166,7 +182,7 @@ export default function CartView({
           <textarea id="no" className="input" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Repère, heure préférée…" />
         </div>
 
-        <button className="btn block" disabled={loading || !location}>
+        <button className="btn block" disabled={loading || !location || quoting}>
           {loading ? "Envoi…" : !location ? "Choisissez votre adresse sur la carte" : `Valider la commande — ${formatFcfa(grandTotal)}`}
         </button>
         {waHref && (

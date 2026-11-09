@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatFcfa } from "@/lib/money";
-import { formatKm } from "@/lib/delivery";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Ma commande" };
@@ -56,7 +55,7 @@ export default async function OrderPage({ params }: { params: Promise<{ publicId
           ))}
         </div>
         <div className="line">
-          <span>Livraison{order.deliveryKm != null ? ` (${formatKm(order.deliveryKm)})` : ""}</span>
+          <span>Livraison</span>
           <strong>{order.deliveryToConfirm ? "À convenir" : formatFcfa(order.deliveryFee)}</strong>
         </div>
         <div className="line total">
