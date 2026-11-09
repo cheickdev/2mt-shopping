@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { fileToDataUrl, remoteToDataUrl } from "@/components/admin/imageResize";
+import { detectBackground, type Background } from "@/components/admin/plainBackground";
 
 export const MAX_PHOTOS = 8;
 
@@ -31,6 +32,9 @@ export default function GalleryEditor({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState<string | null>(null);
+  // Analyse des fonds : url -> resultat (undefined = en cours, null = analyse impossible).
+  const [bgs, setBgs] = useState<Record<string, Background | null>>({});
+  const [plainOnly, setPlainOnly] = useState(true);
 
   const room = MAX_PHOTOS - value.length;
 
@@ -60,12 +64,34 @@ export default function GalleryEditor({
       else {
         setResults(d.results);
         setProvider(d.provider);
+        analyse(d.results);
       }
     } catch {
       setError("Impossible de contacter le serveur.");
     } finally {
       setBusy(null);
     }
+  }
+
+  // Analyse chaque miniature (via le relais du serveur, sinon le navigateur
+  // interdit de lire les pixels d'une image d'un autre site).
+  function analyse(list: Result[]) {
+    setBgs({});
+    let i = 0;
+    const next = async (): Promise<void> => {
+      const r = list[i++];
+      if (!r) return;
+      let res: Background | null = null;
+      try {
+        res = await detectBackground(`/api/admin/import/image?url=${encodeURIComponent(r.thumb)}`);
+      } catch {
+        res = null;
+      }
+      setBgs((m) => ({ ...m, [r.url]: res }));
+      return next();
+    };
+    // 4 analyses en parallele
+    Promise.all([next(), next(), next(), next()]);
   }
 
   function openSearch() {
@@ -162,15 +188,28 @@ export default function GalleryEditor({
           </form>
           {error && <div className="error">{error}</div>}
           {results && results.length === 0 && <p className="note">Aucune image trouvée. Essayez un autre nom.</p>}
-          {results && results.length > 0 && (
+          {results && results.length > 0 && (() => {
+            const analysed = results.filter((r) => r.url in bgs).length;
+            const plainCount = results.filter((r) => bgs[r.url]?.plain).length;
+            const visible = plainOnly ? results.filter((r) => bgs[r.url]?.plain || picked.includes(r.url)) : results;
+            return (
             <>
+              <label className="pe-check" style={{ margin: 0 }}>
+                <input type="checkbox" checked={plainOnly} onChange={(e) => setPlainOnly(e.target.checked)} />
+                Fond uni seulement (blanc ou une couleur) — {plainCount} trouvée{plainCount > 1 ? "s" : ""}
+                {analysed < results.length && ` · analyse ${analysed}/${results.length}…`}
+              </label>
+              {plainOnly && analysed === results.length && plainCount === 0 && (
+                <p className="note" style={{ margin: 0 }}>Aucune photo à fond uni. Décochez le filtre ou essayez un autre nom.</p>
+              )}
               <p className="note" style={{ margin: 0 }}>
                 Touchez les photos à ajouter ({picked.length}/{room})
                 {provider === "openverse" && " · Images libres (Openverse) : pour les photos de marques, configurez la recherche Google."}
               </p>
               <div className="gal-results">
-                {results.map((r) => {
+                {visible.map((r) => {
                   const n = picked.indexOf(r.url);
+                  const bg = bgs[r.url];
                   return (
                     <button
                       type="button"
@@ -182,6 +221,7 @@ export default function GalleryEditor({
                       <img src={r.thumb} alt={r.title} loading="lazy" referrerPolicy="no-referrer" />
                       {n >= 0 && <span className="gal-num">{n + 1}</span>}
                       {r.source && <span className="gal-src">{r.source}</span>}
+                      {bg?.plain && <span className="gal-bg" style={{ background: bg.color }} title="Fond uni" />}
                     </button>
                   );
                 })}
@@ -190,7 +230,8 @@ export default function GalleryEditor({
                 {busy ?? `Ajouter ${picked.length || ""} photo${picked.length > 1 ? "s" : ""}`}
               </button>
             </>
-          )}
+            );
+          })()}
         </div>
       )}
     </div>
