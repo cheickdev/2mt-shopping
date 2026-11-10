@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { fileToDataUrl, remoteToDataUrl } from "@/components/admin/imageResize";
 import { detectBackground, type Background } from "@/components/admin/plainBackground";
+import CutoutModal from "@/components/admin/CutoutModal";
 
 export const MAX_PHOTOS = 8;
 
@@ -28,6 +29,9 @@ export default function GalleryEditor({
   searchName: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const cutFileRef = useRef<HTMLInputElement>(null);
+  // Outil « Enlever le fond » : photo ouverte + photo a remplacer (index) ou ajout (null).
+  const [cut, setCut] = useState<{ src: string; index: number | null } | null>(null);
   const [searching, setSearching] = useState(false);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[] | null>(null);
@@ -51,6 +55,26 @@ export default function GalleryEditor({
     } finally {
       setBusy(null);
     }
+  }
+
+  // Nouvelle photo a detourer (ex. photo d'etagere avec plusieurs produits).
+  function onCutFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setCut({ src: URL.createObjectURL(f), index: null });
+  }
+
+  function closeCut() {
+    if (cut?.src.startsWith("blob:")) URL.revokeObjectURL(cut.src);
+    setCut(null);
+  }
+
+  function applyCut(url: string) {
+    if (!cut) return;
+    if (cut.index === null) onChange(merge(value, [url]));
+    else onChange(value.map((v, j) => (j === cut.index ? url : v)));
+    closeCut();
   }
 
   async function runSearch(term: string) {
@@ -151,6 +175,9 @@ export default function GalleryEditor({
               <button type="button" className="gal-x" onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label="Retirer la photo">
                 ✕
               </button>
+              <button type="button" className="gal-cut" onClick={() => setCut({ src, index: i })} title="Enlever le fond de cette photo" aria-label="Enlever le fond de cette photo">
+                ✂️
+              </button>
             </div>
           ))}
         </div>
@@ -166,13 +193,26 @@ export default function GalleryEditor({
           <button type="button" className="btn ghost sm" onClick={openSearch} disabled={!!busy || searchName.trim().length < 2}>
             🔎 Chercher sur internet
           </button>
+          <button type="button" className="btn ghost sm" onClick={() => cutFileRef.current?.click()} disabled={!!busy}>
+            ✂️ Photo sans fond
+          </button>
           <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={onFiles} />
+          <input ref={cutFileRef} type="file" accept="image/*" hidden onChange={onCutFile} />
         </div>
       ) : (
         <p className="note" style={{ margin: 0 }}>{MAX_PHOTOS} photos maximum.</p>
       )}
       {searchName.trim().length < 2 && room > 0 && <span className="note">Écrivez d'abord le nom du produit pour chercher des photos.</span>}
       {busy && <span className="note">{busy}</span>}
+      {value.length > 0 && <span className="note">✂️ sur une photo : enlever son fond.</span>}
+      {cut && (
+        <CutoutModal
+          src={cut.src}
+          useLabel={cut.index === null ? "Ajouter cette photo au produit" : "Remplacer la photo par celle-ci"}
+          onUse={applyCut}
+          onClose={closeCut}
+        />
+      )}
 
       {searching && (
         <div className="gal-search">

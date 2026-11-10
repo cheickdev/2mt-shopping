@@ -10,3 +10,4 @@
 .DS_Store
 next-env.d.ts
 tsconfig.tsbuildinfo
+/public/ia/ort

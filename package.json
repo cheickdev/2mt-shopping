@@ -4,14 +4,15 @@
   "private": true,
   "description": "2MT - Shopping : boutique en ligne (chaussures & cosmetiques) a Bamako",
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
+    "dev": "node scripts/copy-ort.mjs && next dev",
+    "build": "node scripts/copy-ort.mjs && prisma generate && next build",
     "start": "next start",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.3.2",
     "@prisma/client": "6.2.1",
     "leaflet": "1.9.4",
     "next": "15.5.29",

@@ -24,10 +24,23 @@ export async function fileToDataUrl(file: File, maxDim = 900, quality = 0.82): P
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return dataUrl;
   ctx.drawImage(img, 0, 0, width, height);
+  // Photo sans fond (PNG/WebP transparent) : on garde la transparence.
+  // (En JPEG, le fond transparent deviendrait noir.)
+  if (hasTransparency(ctx, width, height)) {
+    const webp = canvas.toDataURL("image/webp", 0.9);
+    return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/png");
+  }
   return canvas.toDataURL("image/jpeg", quality);
+}
+
+/** Vrai si une partie de l'image est transparente. */
+function hasTransparency(ctx: CanvasRenderingContext2D, w: number, h: number): boolean {
+  const { data } = ctx.getImageData(0, 0, w, h);
+  for (let i = 3; i < data.length; i += 4) if (data[i] < 250) return true;
+  return false;
 }
 
 /** Recupere une image d'un autre site via le relais du serveur, puis la reduit. */
