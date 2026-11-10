@@ -285,21 +285,24 @@ export function composeCutout(prep: Prepared, cut: Cut): string | null {
       else if (soft[i] > 0.02 && near(x0 + x, y0 + y)) a = soft[i];
       px[(y * bw + x) * 4 + 3] = Math.round(a * 255);
     }
-  const piece = document.createElement("canvas");
-  piece.width = bw;
-  piece.height = bh;
-  piece.getContext("2d")!.putImageData(src, 0, 0);
+  const raw = document.createElement("canvas");
+  raw.width = bw;
+  raw.height = bh;
+  raw.getContext("2d")!.putImageData(src, 0, 0);
+  const piece = straighten(raw, px, bw, bh);
+  const pw = piece.width;
+  const ph = piece.height;
 
-  let size = Math.min(MAX_OUT, Math.round(Math.max(bw, bh) * 1.08));
+  let size = Math.min(MAX_OUT, Math.round(Math.max(pw, ph) * 1.08));
   for (let attempt = 0; attempt < 5; attempt++) {
     const out = document.createElement("canvas");
     out.width = size;
     out.height = size;
     const ctx = out.getContext("2d")!;
     ctx.imageSmoothingQuality = "high";
-    const k = (size / 1.08) / Math.max(bw, bh);
-    const dw = bw * k;
-    const dh = bh * k;
+    const k = (size / 1.08) / Math.max(pw, ph);
+    const dw = pw * k;
+    const dh = ph * k;
     ctx.drawImage(piece, (size - dw) / 2, (size - dh) / 2, dw, dh);
     let url = out.toDataURL("image/webp", 0.9);
     if (!url.startsWith("data:image/webp")) url = out.toDataURL("image/png");
@@ -307,4 +310,93 @@ export function composeCutout(prep: Prepared, cut: Cut): string | null {
     size = Math.round(size * 0.8); // trop lourde : on reduit
   }
   return null;
+}
+
+const MAX_TILT = 20; // degres : au-dela, on considere que le produit est couche expres
+
+/**
+ * Redresse un produit penche : on cherche l'angle (entre -20 et +20 degres)
+ * ou le produit tient dans le rectangle le plus petit — c'est l'angle ou il
+ * est droit. Si le gain est negligeable, on ne touche a rien.
+ */
+function straighten(piece: HTMLCanvasElement, rgba: Uint8ClampedArray, w: number, h: number): HTMLCanvasElement {
+  // Points du contour du produit (echantillonnes pour aller vite).
+  const step = Math.max(1, Math.round(Math.max(w, h) / 300));
+  const opaque = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && rgba[(y * w + x) * 4 + 3] > 127;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let y = 0; y < h; y += step)
+    for (let x = 0; x < w; x += step)
+      if (opaque(x, y) && (!opaque(x - step, y) || !opaque(x + step, y) || !opaque(x, y - step) || !opaque(x, y + step))) {
+        xs.push(x - w / 2);
+        ys.push(y - h / 2);
+      }
+  if (xs.length < 20) return piece;
+  // Meme formule que ctx.rotate(t) : x' = x cos t - y sin t ; y' = x sin t + y cos t.
+  const area = (t: number) => {
+    const c = Math.cos(t);
+    const s = Math.sin(t);
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let y0 = Infinity;
+    let y1 = -Infinity;
+    for (let i = 0; i < xs.length; i++) {
+      const X = xs[i] * c - ys[i] * s;
+      const Y = xs[i] * s + ys[i] * c;
+      if (X < x0) x0 = X;
+      if (X > x1) x1 = X;
+      if (Y < y0) y0 = Y;
+      if (Y > y1) y1 = Y;
+    }
+    return (x1 - x0) * (y1 - y0);
+  };
+  const rad = Math.PI / 180;
+  let best = 0;
+  let bestA = area(0);
+  const base = bestA;
+  for (let d = -MAX_TILT; d <= MAX_TILT; d += 0.5) {
+    const a = area(d * rad);
+    if (a < bestA) {
+      bestA = a;
+      best = d;
+    }
+  }
+  for (let d = best - 0.5; d <= best + 0.5; d += 0.1) {
+    const a = area(d * rad);
+    if (a < bestA) {
+      bestA = a;
+      best = d;
+    }
+  }
+  if (Math.abs(best) < 1 || bestA > base * 0.985) return piece; // deja droit
+
+  // Rotation, puis on recadre au plus pres du produit.
+  const diag = Math.ceil(Math.hypot(w, h));
+  const rot = document.createElement("canvas");
+  rot.width = diag;
+  rot.height = diag;
+  const ctx = rot.getContext("2d", { willReadFrequently: true })!;
+  ctx.imageSmoothingQuality = "high";
+  ctx.translate(diag / 2, diag / 2);
+  ctx.rotate(best * rad);
+  ctx.drawImage(piece, -w / 2, -h / 2);
+  const data = ctx.getImageData(0, 0, diag, diag).data;
+  let x0 = diag;
+  let y0 = diag;
+  let x1 = -1;
+  let y1 = -1;
+  for (let y = 0; y < diag; y++)
+    for (let x = 0; x < diag; x++)
+      if (data[(y * diag + x) * 4 + 3] > 8) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+  if (x1 < 0) return piece;
+  const out = document.createElement("canvas");
+  out.width = x1 - x0 + 1;
+  out.height = y1 - y0 + 1;
+  out.getContext("2d")!.drawImage(rot, -x0, -y0);
+  return out;
 }
