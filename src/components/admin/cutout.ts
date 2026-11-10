@@ -323,9 +323,21 @@ function straighten(piece: HTMLCanvasElement, rgba: Uint8ClampedArray, w: number
   // Points du contour du produit (echantillonnes pour aller vite).
   const step = Math.max(1, Math.round(Math.max(w, h) / 300));
   const opaque = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && rgba[(y * w + x) * 4 + 3] > 127;
+  // On mesure sur le corps du produit (70 % du bas) : un bouchon ou un bec de
+  // pompe qui depasse sur le cote fausserait l'angle.
+  let top = -1;
+  let bottom = -1;
+  for (let y = 0; y < h; y += step)
+    for (let x = 0; x < w; x += step)
+      if (opaque(x, y)) {
+        if (top < 0) top = y;
+        bottom = y;
+        break;
+      }
+  const bodyTop = top + 0.3 * (bottom - top);
   const xs: number[] = [];
   const ys: number[] = [];
-  for (let y = 0; y < h; y += step)
+  for (let y = Math.ceil(bodyTop); y < h; y += step)
     for (let x = 0; x < w; x += step)
       if (opaque(x, y) && (!opaque(x - step, y) || !opaque(x + step, y) || !opaque(x, y - step) || !opaque(x, y + step))) {
         xs.push(x - w / 2);
