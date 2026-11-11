@@ -14,9 +14,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const p = await prisma.product.findUnique({ where: { slug } });
   if (!p) return { title: "Article introuvable" };
+  const description = `${formatFcfa(p.price)} · Livraison à Bamako, paiement à la livraison.${p.description ? " " + p.description.slice(0, 150) : ""}`;
+  // L'image de partage vient de ./opengraph-image.tsx (photo + nom + prix).
   return {
     title: p.name,
-    description: p.description || `${p.name} — ${formatFcfa(p.price)}. Livraison à Bamako.`,
+    description,
+    alternates: { canonical: `/produit/${slug}` },
+    openGraph: { title: `${p.name} — ${formatFcfa(p.price)}`, description, url: `/produit/${slug}`, siteName: "2MT - Shopping", type: "website", locale: "fr_FR" },
+    twitter: { card: "summary_large_image", title: `${p.name} — ${formatFcfa(p.price)}`, description },
   };
 }
 

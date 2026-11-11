@@ -24,7 +24,9 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: "2MT - Shopping",
     type: "website",
+    locale: "fr_FR",
   },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
