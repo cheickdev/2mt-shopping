@@ -4,6 +4,28 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatFcfa } from "@/lib/money";
 import type { TrendItem } from "@/lib/trends";
+import type { LocalAd, LocalTerm } from "@/lib/coinafrique";
+
+// Categories CoinAfrique Mali lues (voir lib/coinafrique).
+const BAMAKO_CATS = [
+  { slug: "cosmetique-et-parfums", label: "Cosmétiques & parfums" },
+  { slug: "chaussures-femme", label: "Chaussures femme" },
+  { slug: "chaussures-homme", label: "Chaussures homme" },
+  { slug: "accessoires-cheveux-coiffure-et-cils", label: "Cheveux, coiffure & cils" },
+];
+
+/** Annonce CoinAfrique -> meme forme qu'un produit tendance (grille commune). */
+const adToItem = (a: LocalAd): TrendItem => ({
+  title: a.title,
+  imageUrl: a.imageUrl,
+  price: a.price ? `${nf.format(a.price)} FCFA` : "",
+  priceFcfa: a.price || null,
+  source: `CoinAfrique Mali${a.age ? ` · il y a ${a.age}` : ""}`,
+  link: a.link,
+  rating: null,
+  ratingCount: null,
+  score: 0,
+});
 import PrefilledProductForm from "@/components/admin/PrefilledProductForm";
 
 interface Upcoming {
@@ -24,11 +46,15 @@ interface Upcoming {
 const proxied = (u: string) => `/api/admin/import/image?url=${encodeURIComponent(u)}`;
 const nf = new Intl.NumberFormat("fr-FR");
 
-// Reperer des produits en tendance (Google Shopping) et garder ceux qui
+// Reperer des produits en tendance (a Bamako via CoinAfrique, ou Google Shopping) et garder ceux qui
 // interessent dans une liste « Produits a venir ».
 export default function TrendsPanel({ categories, onClose }: { categories: string[]; onClose: () => void }) {
   const router = useRouter();
   const [tab, setTab] = useState<"chercher" | "avenir">("chercher");
+  const [source, setSource] = useState<"bamako" | "google">("bamako");
+  const [cat, setCat] = useState(BAMAKO_CATS[0].slug);
+  const [terms, setTerms] = useState<LocalTerm[]>([]);
+  const [meta, setMeta] = useState<{ total: number; oldestDays: number; count: number } | null>(null);
   const [q, setQ] = useState("");
   const [lastQ, setLastQ] = useState("");
   const [results, setResults] = useState<TrendItem[] | null>(null);
@@ -52,7 +78,39 @@ export default function TrendsPanel({ categories, onClose }: { categories: strin
     loadUpcoming();
   }, []);
 
+  // A Bamako : chargement automatique de la categorie choisie.
+  useEffect(() => {
+    if (source === "bamako") searchBamako("", cat);
+    else setResults(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, cat]);
+
+  async function searchBamako(term: string, category = cat) {
+    const t = term.trim();
+    setQ(t);
+    setLastQ(t);
+    setError(null);
+    setInfo(null);
+    setResults(null);
+    setPicked(new Set());
+    setBusy("Lecture des annonces de Bamako…");
+    try {
+      const d = await (await fetch(`/api/admin/tendances-bamako?cat=${encodeURIComponent(category)}&q=${encodeURIComponent(t)}`)).json();
+      if (!d.ok) setError(d.error ?? "Recherche impossible.");
+      else {
+        setResults((d.results as LocalAd[]).map(adToItem));
+        setTerms(d.terms);
+        setMeta({ total: d.total, oldestDays: d.oldestDays, count: d.count });
+      }
+    } catch {
+      setError("Impossible de contacter le serveur.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function search(term: string) {
+    if (source === "bamako") return searchBamako(term);
     const t = term.trim();
     if (t.length < 2) return;
     setQ(t);
@@ -160,35 +218,85 @@ export default function TrendsPanel({ categories, onClose }: { categories: strin
 
       {tab === "chercher" ? (
         <>
-          <p className="note" style={{ margin: "0 0 8px" }}>
-            Les produits les plus populaires sur Google Shopping (les plus notés et commentés). Cochez ceux qui vous intéressent.
-          </p>
-          <form
-            className="imp-url"
-            onSubmit={(e) => {
-              e.preventDefault();
-              search(q);
-            }}
-          >
-            <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Thème : parfum homme, lait corporel…" />
-            <button className="btn sm" disabled={!!busy || q.trim().length < 2}>Chercher</button>
-          </form>
-          <div className="tr-chips">
-            {categories.map((c) => (
-              <button key={c} type="button" className="cat-chip" onClick={() => search(c)} disabled={!!busy}>
-                {c}
-              </button>
-            ))}
+          <div className="tr-source">
+            <button className={`btn sm ${source === "bamako" ? "" : "ghost"}`} onClick={() => setSource("bamako")}>🇲🇱 À Bamako</button>
+            <button className={`btn sm ${source === "google" ? "" : "ghost"}`} onClick={() => setSource("google")}>🌍 Google Shopping</button>
           </div>
-          {suggestions.length > 0 && (
-            <div className="tr-sugg">
-              <span className="note">Recherches populaires :</span>
-              {suggestions.map((s) => (
-                <button key={s} type="button" className="tr-sugg-chip" onClick={() => search(s)} disabled={!!busy}>
-                  {s}
-                </button>
-              ))}
-            </div>
+          {source === "bamako" ? (
+            <>
+              <p className="note" style={{ margin: "0 0 8px" }}>
+                Ce que les vendeurs proposent le plus <strong>à Bamako</strong>, d'après les annonces récentes de CoinAfrique Mali
+                {meta ? ` (${meta.total} annonces${meta.oldestDays ? `, ${meta.oldestDays >= 60 ? `${Math.round(meta.oldestDays / 30)} derniers mois` : `${meta.oldestDays} derniers jours`}` : ""})` : ""}. Quand beaucoup
+                de vendeurs proposent un produit, c'est qu'il se vend.
+              </p>
+              <select className="input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Catégorie" style={{ marginBottom: 8 }}>
+                {BAMAKO_CATS.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              <form
+                className="imp-url"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  searchBamako(q);
+                }}
+              >
+                <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filtrer : gel douche, Naomi, argan…" />
+                <button className="btn sm" disabled={!!busy}>{q.trim() ? "Chercher" : "Tout voir"}</button>
+              </form>
+              {terms.length > 0 && (
+                <div className="tr-terms">
+                  <span className="note">{lastQ ? `Avec « ${lastQ} », on trouve surtout :` : "🔥 Les plus proposés à Bamako :"}</span>
+                  <div className="tr-terms-list">
+                    {terms.map((t, i) => (
+                      <button key={t.term} type="button" className="tr-term" onClick={() => searchBamako(lastQ ? `${lastQ} ${t.term}` : t.term)} disabled={!!busy}>
+                        <span className="tr-term-rank">{i + 1}</span>
+                        <span className="tr-term-name">{t.term}</span>
+                        <span className="tr-term-n">
+                          {t.count} annonces{t.medianPrice ? ` · ~${formatFcfa(t.medianPrice)}` : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {meta && lastQ && <p className="note" style={{ margin: "0 0 8px" }}>{meta.count} annonce{meta.count > 1 ? "s" : ""} pour « {lastQ} » (les plus récentes d'abord).</p>}
+            </>
+          ) : (
+            <>
+              <p className="note" style={{ margin: "0 0 8px" }}>
+                Les produits les plus populaires sur Google Shopping France (les plus notés et commentés).
+              </p>
+              <form
+                className="imp-url"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  search(q);
+                }}
+              >
+                <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Thème : parfum homme, lait corporel…" />
+                <button className="btn sm" disabled={!!busy || q.trim().length < 2}>Chercher</button>
+              </form>
+              <div className="tr-chips">
+                {categories.map((c) => (
+                  <button key={c} type="button" className="cat-chip" onClick={() => search(c)} disabled={!!busy}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+              {suggestions.length > 0 && (
+                <div className="tr-sugg">
+                  <span className="note">Recherches populaires :</span>
+                  {suggestions.map((sg) => (
+                    <button key={sg} type="button" className="tr-sugg-chip" onClick={() => search(sg)} disabled={!!busy}>
+                      {sg}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
           {busy && <p className="note">{busy}</p>}
           {results && results.length === 0 && <p className="note">Aucun produit trouvé pour « {lastQ} ». Essayez un autre mot.</p>}
