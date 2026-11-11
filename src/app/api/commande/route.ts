@@ -140,5 +140,5 @@ export async function POST(req: Request) {
     return created;
   });
 
-  return NextResponse.json({ ok: true, publicId: order.publicId });
+  return NextResponse.json({ ok: true, publicId: order.publicId, total: order.total });
 }

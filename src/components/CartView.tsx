@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart";
 import { formatFcfa } from "@/lib/money";
+import { track, CURRENCY } from "@/lib/pixel";
 import LocationPicker from "@/components/LocationPicker";
 import { mapsLink, type LatLng } from "@/lib/delivery";
 
@@ -56,6 +57,15 @@ export default function CartView({
       return;
     }
     setLoading(true);
+    const value = items.reduce((s, i) => s + i.price * i.quantity, 0);
+    const pixelData = {
+      content_ids: items.map((i) => i.productId),
+      content_type: "product",
+      num_items: items.reduce((s, i) => s + i.quantity, 0),
+      value,
+      currency: CURRENCY,
+    };
+    track("InitiateCheckout", pixelData);
     try {
       const res = await fetch("/api/commande", {
         method: "POST",
@@ -71,6 +81,7 @@ export default function CartView({
         setError(data.error ?? "Une erreur est survenue.");
         return;
       }
+      track("Purchase", { ...pixelData, value: typeof data.total === "number" ? data.total : value });
       clear();
       router.push(`/commande/${data.publicId}`);
     } catch {

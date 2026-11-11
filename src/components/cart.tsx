@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { track, CURRENCY } from "@/lib/pixel";
 
 export interface CartItem {
   key: string; // productId + "|" + (variantId | variant)
@@ -55,6 +56,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add = useCallback((item: Omit<CartItem, "key">) => {
     const key = item.productId + "|" + (item.variantId ?? item.variant);
+    track("AddToCart", {
+      content_ids: [item.productId],
+      content_name: item.name,
+      content_type: "product",
+      value: item.price * item.quantity,
+      currency: CURRENCY,
+    });
     setItems((prev) => {
       const existing = prev.find((i) => i.key === key);
       if (existing) {

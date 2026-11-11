@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { track, CURRENCY } from "@/lib/pixel";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart";
 import { formatFcfa } from "@/lib/money";
@@ -45,6 +46,11 @@ export default function ProductDetail({
 }) {
   const router = useRouter();
   const { add } = useCart();
+
+  // Pixel Facebook : produit regarde.
+  useEffect(() => {
+    track("ViewContent", { content_ids: [product.id], content_name: product.name, content_type: "product", value: product.price, currency: CURRENCY });
+  }, [product.id, product.name, product.price]);
 
   const hasVariants = product.variants.length > 0;
   const firstAvailable = product.variants.find((v) => v.stock > 0) ?? product.variants[0] ?? null;

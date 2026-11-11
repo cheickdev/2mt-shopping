@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { CartProvider } from "@/components/cart";
 import Header from "@/components/Header";
 import { getSettings } from "@/lib/settings";
 import { getMenuCategories, getMenuUser } from "@/lib/menu";
+import MetaPixel from "@/components/MetaPixel";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -56,6 +58,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        {settings.metaPixelId && (
+          <Suspense fallback={null}>
+            <MetaPixel id={settings.metaPixelId} />
+          </Suspense>
+        )}
         <CartProvider>
           <Header shopName={settings.shopName} categories={categories} user={user} whatsapp={settings.whatsapp} />
           <main className="container">{children}</main>

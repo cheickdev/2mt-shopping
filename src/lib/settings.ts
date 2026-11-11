@@ -6,6 +6,7 @@ export interface ShopSettings {
   deliveryFee: number;
   partnerAPct: number;
   adBudget: number;
+  metaPixelId: string; // ID du Pixel Facebook, vide = pas de suivi
   ownerName: string;
   partnerName: string;
   shopLat: number | null; // point de depart des livraisons
@@ -18,6 +19,7 @@ const DEFAULTS: ShopSettings = {
   deliveryFee: 1000,
   partnerAPct: 60,
   adBudget: 0,
+  metaPixelId: "",
   ownerName: "Propriétaire",
   partnerName: "Partenaire",
   shopLat: null,
@@ -38,6 +40,7 @@ export async function getSettings(): Promise<ShopSettings> {
       deliveryFee: s.deliveryFee,
       partnerAPct: s.partnerAPct,
       adBudget: s.adBudget,
+      metaPixelId: s.metaPixelId,
       ownerName: s.ownerName,
       partnerName: s.partnerName,
       shopLat: s.shopLat,

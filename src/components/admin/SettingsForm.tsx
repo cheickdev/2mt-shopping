@@ -12,6 +12,7 @@ export interface SettingsData {
   deliveryFee: number;
   partnerAPct: number;
   adBudget: number;
+  metaPixelId: string;
   ownerName: string;
   partnerName: string;
   shopLat: number | null;
@@ -25,6 +26,7 @@ export default function SettingsForm({ initial }: { initial: SettingsData }) {
   const [deliveryFee, setDeliveryFee] = useState(String(initial.deliveryFee));
   const [partnerAPct, setPartnerAPct] = useState(String(initial.partnerAPct));
   const [adBudget, setAdBudget] = useState(String(initial.adBudget));
+  const [metaPixelId, setMetaPixelId] = useState(initial.metaPixelId);
   const [ownerName, setOwnerName] = useState(initial.ownerName);
   const [partnerName, setPartnerName] = useState(initial.partnerName);
   const [shopPoint, setShopPoint] = useState<LatLng | null>(
@@ -48,6 +50,7 @@ export default function SettingsForm({ initial }: { initial: SettingsData }) {
         deliveryFee: parseFcfa(deliveryFee),
         partnerAPct: Math.min(100, Math.max(0, parseInt(partnerAPct, 10) || 0)),
         adBudget: parseFcfa(adBudget),
+        metaPixelId: metaPixelId.replace(/\D/g, ""),
         ownerName: ownerName.trim() || "Propriétaire",
         partnerName: partnerName.trim() || "Partenaire",
         shopLat: shopPoint ? shopPoint.lat : null,
@@ -115,6 +118,13 @@ export default function SettingsForm({ initial }: { initial: SettingsData }) {
       <div className="field">
         <label>Dépenses pub du mois (FCFA)</label>
         <input className="input" inputMode="numeric" value={adBudget} onChange={(e) => setAdBudget(e.target.value)} />
+      </div>
+      <div className="field">
+        <label>ID du Pixel Facebook (Meta)</label>
+        <input className="input" inputMode="numeric" value={metaPixelId} onChange={(e) => setMetaPixelId(e.target.value)} placeholder="Ex. 1234567890123456" />
+        <span className="note">
+          Gestionnaire d'événements Meta → votre Pixel → Paramètres → « ID ». Laissez vide pour ne rien envoyer à Facebook.
+        </span>
       </div>
 
       <hr style={{ border: "none", borderTop: "1px solid var(--line)", margin: "6px 0" }} />

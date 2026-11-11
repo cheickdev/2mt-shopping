@@ -126,6 +126,7 @@ model Setting {
   shopLng        Float?
   partnerAPct    Int    @default(60) // part de l'associe principal (%)
   adBudget       Int    @default(0) // depenses pub du mois (FCFA), pour le calcul du benefice net
+  metaPixelId    String @default("") // ID du Pixel Facebook (Meta), vide = pas de suivi
 
   // Associes : noms affiches + mots de passe (hash). Si le hash est vide, on
   // retombe sur la variable d'environnement correspondante.

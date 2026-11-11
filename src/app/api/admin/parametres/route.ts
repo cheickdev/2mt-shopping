@@ -9,6 +9,7 @@ const schema = z.object({
   deliveryFee: z.number().int().nonnegative().optional(),
   partnerAPct: z.number().int().min(0).max(100).optional(),
   adBudget: z.number().int().nonnegative().optional(),
+  metaPixelId: z.string().regex(/^\d{0,20}$/, "L'ID du Pixel ne contient que des chiffres.").optional(),
   ownerName: z.string().min(1).max(40).optional(),
   partnerName: z.string().min(1).max(40).optional(),
   // Point de depart des livraisons (null = non regle).
