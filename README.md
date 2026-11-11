@@ -27,7 +27,7 @@ Comme pour une appli Next.js standard :
    - `DATABASE_URL` (Postgres Neon)
    - `ADMIN_PASSWORD` (mot de passe du tableau de bord — **à changer**)
    - `ADMIN_SESSION_SECRET` (chaîne aléatoire)
-   - `NEXT_PUBLIC_SITE_URL` (ex. `https://2mt-shopping.vercel.app`)
+   - `NEXT_PUBLIC_SITE_URL` (ex. `https://www.2mt.shop`)
 4. Pousser le code sur GitHub, importer le repo dans Vercel, déployer.
 5. Après le 1er déploiement, initialiser le schéma Postgres (`prisma db push`).
 

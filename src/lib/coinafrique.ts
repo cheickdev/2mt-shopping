@@ -34,7 +34,7 @@ export interface LocalTerm {
 const BASE = process.env.COINAFRIQUE_BASE || "https://ml.coinafrique.com";
 const PAGES = 4; // ~84 annonces par page
 const TTL = 6 * 60 * 60 * 1000;
-const UA = "Mozilla/5.0 (compatible; 2MT-Shopping/1.0; +https://2mt-shopping.vercel.app)";
+const UA = "Mozilla/5.0 (compatible; 2MT-Shopping/1.0; +https://www.2mt.shop)";
 
 const cache = ((globalThis as unknown as { __coinafrique?: Map<string, { at: number; ads: LocalAd[] }> }).__coinafrique ??= new Map());
 
