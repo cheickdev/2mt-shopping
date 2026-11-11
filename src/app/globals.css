@@ -685,3 +685,31 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
   .marquee-name { font-size: 11px; }
   .marquee-price { font-size: 12px; }
 }
+
+/* ----- Fiche produit : photo moins grande ----- */
+.product { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 40px; }
+@media (max-width: 760px) {
+  .product { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .product .gallery-wrap { width: 100%; max-width: 340px; margin: 0 auto; }
+}
+
+/* ----- Admin > Categories ----- */
+.cats-ok { background: color-mix(in srgb, var(--ok, #1a8f4e) 14%, transparent); color: var(--ok, #1a8f4e); border-radius: 10px; padding: 10px 12px; font-weight: 600; margin-bottom: 12px; }
+.cats-plan { border-top: 1px solid var(--line); padding: 8px 0; }
+.cats-plan summary { cursor: pointer; }
+.cats-plan ul { margin: 6px 0 0; padding-left: 20px; font-size: 14px; }
+.cats-list { display: flex; flex-direction: column; gap: 10px; }
+.cats-block { padding: 0; }
+.cats-block > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; cursor: pointer; list-style: none; }
+.cats-block > summary::-webkit-details-marker { display: none; }
+.cats-block > summary::after { content: "▾"; color: var(--muted); }
+.cats-block[open] > summary::after { content: "▴"; }
+.cats-name { font-weight: 700; overflow-wrap: anywhere; flex: 1; }
+.cats-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.cats-rename { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cats-rename .input { flex: 1 1 200px; }
+.cats-products { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cats-products li { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 6px; font-size: 14px; }
+.cats-products li > span { min-width: 0; overflow-wrap: anywhere; }
+.cats-products select { width: auto; max-width: 48%; padding: 6px 8px; font-size: 13px; }
+.cats .btn { white-space: normal; height: auto; line-height: 1.25; }

@@ -109,6 +109,7 @@ export default function SideMenu({
               <h3>Espace administrateur</h3>
               <a className="drawer-link" href="/admin">Tableau de bord</a>
               <a className="drawer-link" href="/admin/produits">Produits</a>
+              <a className="drawer-link" href="/admin/categories">Catégories</a>
               <a className="drawer-link" href="/admin/commandes">Commandes</a>
               {user.role === "owner" && <a className="drawer-link" href="/admin/parametres">Paramètres</a>}
               <a className="drawer-link" href="/admin/compte">Mon compte ({user.name})</a>
