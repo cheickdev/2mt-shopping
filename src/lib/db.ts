@@ -36,6 +36,20 @@ export const SCHEMA_UPGRADES: string[] = [
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "CaisseProduct_pkey" PRIMARY KEY ("ref")
   )`,
+  // Notes des clients (etoiles).
+  `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "ratingAvg" DOUBLE PRECISION NOT NULL DEFAULT 0`,
+  `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "ratingCount" INTEGER NOT NULL DEFAULT 0`,
+  `CREATE TABLE IF NOT EXISTS "ProductRating" (
+    "id" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "voterId" TEXT NOT NULL,
+    "stars" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ProductRating_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "ProductRating_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "ProductRating_productId_voterId_key" ON "ProductRating"("productId", "voterId")`,
 ];
 
 function createClient() {

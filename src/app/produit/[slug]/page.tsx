@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { VOTER_COOKIE } from "@/lib/ratings";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatFcfa } from "@/lib/money";
@@ -41,6 +43,10 @@ export default async function ProductPage({
   if (!p || !p.active || p.archived) notFound();
 
   const settings = await getSettings();
+  const voterId = (await cookies()).get(VOTER_COOKIE)?.value;
+  const mine = voterId
+    ? await prisma.productRating.findUnique({ where: { productId_voterId: { productId: p.id, voterId } }, select: { stars: true } })
+    : null;
   const product: ProductDetailData = {
     id: p.id,
     slug: p.slug,
@@ -53,6 +59,9 @@ export default async function ProductPage({
     stock: p.stock,
     variants: p.variants.map((v) => ({ id: v.id, label: v.label, stock: v.stock, image: v.imageData })),
     sizes: parseSizes(p.sizes),
+    ratingAvg: p.ratingAvg,
+    ratingCount: p.ratingCount,
+    myRating: mine?.stars ?? null,
   };
 
   return (

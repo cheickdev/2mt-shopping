@@ -48,7 +48,7 @@ export default function Header({
             )}
             <a href="/panier" className="cart-link" aria-label="Panier">
               Panier
-              {count > 0 && <span className="cart-badge">{count}</span>}
+              {count > 0 && <span key={count} className="cart-badge bump">{count}</span>}
             </a>
           </nav>
         </div>

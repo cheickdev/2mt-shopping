@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart";
 import { formatFcfa } from "@/lib/money";
+import RateProduct from "@/components/RateProduct";
 
 export interface VariantView {
   id: string;
@@ -24,6 +25,9 @@ export interface ProductDetailData {
   stock: number; // stock produit (utilise seulement s'il n'y a pas de variete)
   variants: VariantView[];
   sizes: string[]; // options simples (sans stock/photo), si pas de variete
+  ratingAvg: number;
+  ratingCount: number;
+  myRating: number | null; // note deja donnee par ce visiteur
 }
 
 export default function ProductDetail({
@@ -119,6 +123,7 @@ export default function ProductDetail({
         <h1>{product.name}</h1>
         {selectedVariant && <div className="card-variant" style={{ fontSize: 14, marginTop: -8 }}>Variété : {selectedVariant.label}</div>}
         <div className="p-price">{formatFcfa(product.price)}</div>
+        <RateProduct productId={product.id} avg={product.ratingAvg} count={product.ratingCount} mine={product.myRating} />
         {product.description && <p className="desc">{product.description}</p>}
 
         {hasVariants && (

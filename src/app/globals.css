@@ -19,7 +19,7 @@
   --danger: #c0392b;
   --radius: 14px;
   --shadow: 0 6px 24px rgba(60, 20, 40, 0.08);
-  --maxw: 1080px;
+  --maxw: 1320px;
   color-scheme: only light; /* refuse aussi l assombrissement force de certains navigateurs */
 }
 
@@ -564,3 +564,124 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
 .caisse-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .caisse-info strong { overflow-wrap: anywhere; }
 .caisse-info .pe-chip { align-self: flex-start; }
+
+/* =====================================================================
+   Accueil v2 : banniere compacte qui defile, cartes animees, panier rapide,
+   etoiles. (Ajoute en dernier : surcharge les regles plus haut.)
+   ===================================================================== */
+
+/* Grille : cartes un peu plus larges sur ordinateur */
+@media (min-width: 900px) {
+  .grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; }
+}
+
+/* ----- Banniere compacte : texte a gauche, produits qui defilent a droite ----- */
+.hero.hero-compact {
+  margin-top: 14px; padding: 18px 20px;
+  display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 18px; align-items: center;
+  animation: rise .5s ease both;
+}
+.hero-compact h1 { font-size: clamp(22px, 3vw, 32px); margin: 6px 0 6px; }
+.hero-compact p { margin: 0 0 12px; }
+.hero-compact .cta-row { gap: 8px; }
+@media (max-width: 760px) {
+  .hero.hero-compact { grid-template-columns: minmax(0, 1fr); padding: 16px 14px; gap: 12px; }
+  .hero-compact p { margin-bottom: 10px; }
+}
+
+.marquee {
+  overflow: hidden; min-width: 0; border-radius: 14px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.marquee-track { display: flex; gap: 12px; width: max-content; animation: marquee linear infinite; padding: 4px 0; }
+.marquee:hover .marquee-track, .marquee:focus-within .marquee-track { animation-play-state: paused; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(calc(-50% - 6px)); } }
+.marquee-item {
+  flex: none; width: 132px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: inherit;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px; transition: transform .2s, box-shadow .2s;
+}
+.marquee-item:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.marquee-img { position: relative; display: block; aspect-ratio: 1; background: #fff; border-radius: 8px; overflow: hidden; }
+.marquee-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.marquee-name { font-size: 12px; font-weight: 600; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.marquee-price { font-size: 13px; font-weight: 800; color: var(--accent); }
+@media (max-width: 760px) { .marquee-item { width: 112px; } }
+
+/* ----- Cartes produit : apparition douce + bouton panier sur la photo ----- */
+.pcard { position: relative; animation: rise .45s ease both; }
+.card-link { display: flex; flex-direction: column; flex: 1; text-decoration: none; color: inherit; }
+.pcard .thumb img { transition: transform .35s ease; }
+.pcard:hover .thumb img { transform: scale(1.05); }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.pcard { container-type: inline-size; }
+.quick-add {
+  position: absolute; z-index: 3; right: 8px; top: 8px;
+  width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+  background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.22);
+  transition: transform .15s ease, background .2s;
+}
+/* En bas a droite de la photo (la photo est carree : sa hauteur = largeur de la carte) */
+@supports (top: 1cqw) { .pcard .quick-add { top: calc(100cqw - 50px); } }
+.quick-add:hover { transform: scale(1.08); }
+.quick-add:active { transform: scale(.92); }
+.quick-add.done { background: var(--ok, #1a8f4e); animation: pop .35s ease; }
+.quick-plus {
+  position: absolute; top: -3px; right: -3px; min-width: 17px; height: 17px; border-radius: 9px; padding: 0 3px;
+  background: #fff; color: var(--accent); font-size: 12px; font-weight: 800; line-height: 17px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.quick-ok { font-size: 20px; font-weight: 800; }
+.quick-toast {
+  position: absolute; right: 48px; top: 50%; transform: translateY(-50%); white-space: nowrap;
+  background: rgba(0,0,0,.8); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 8px;
+  animation: rise .25s ease both;
+}
+@keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+/* Compteur du panier qui « saute » quand on ajoute un article */
+.cart-badge.bump { animation: pop .4s ease; }
+
+/* ----- Etoiles ----- */
+.stars { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+.stars-bg { position: relative; display: inline-block; color: #d9d0cc; letter-spacing: 1px; line-height: 1; }
+.stars-fg { position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap; color: #f5a623; }
+.stars-n { font-weight: 600; }
+.rate { display: flex; flex-direction: column; gap: 6px; }
+.rate-me { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rate-stars { display: inline-flex; }
+.rate-stars button {
+  background: none; border: none; cursor: pointer; padding: 2px 3px; font-size: 26px; line-height: 1; color: #d9d0cc;
+  transition: transform .12s, color .12s;
+}
+.rate-stars button.on { color: #f5a623; }
+.rate-stars button:hover { transform: scale(1.18); }
+.rate-msg { color: var(--ok, #1a8f4e); }
+
+/* ----- Categories et pages ----- */
+.cat-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cat-chip {
+  text-decoration: none; color: var(--fg); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: 14px; transition: transform .15s, border-color .15s;
+}
+.cat-chip:hover { transform: translateY(-2px); border-color: var(--accent); }
+.cat-chip.all { background: var(--accent); color: #fff; border-color: transparent; }
+.section-head .count { font-size: 15px; color: var(--muted); font-weight: 600; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 22px 0 6px; }
+
+/* Moins d'animations pour les personnes qui le demandent */
+@media (prefers-reduced-motion: reduce) {
+  .marquee { overflow-x: auto; }
+  .marquee-track { animation: none; }
+  .pcard, .hero.hero-compact, .quick-toast { animation: none; }
+}
+/* Telephone : banniere encore plus compacte pour que les produits arrivent vite */
+@media (max-width: 760px) {
+  .hero-compact .eyebrow { display: none; }
+  .hero-compact h1 { font-size: 21px; margin-top: 0; }
+  .hero-compact p { font-size: 14px; }
+  .marquee-item { width: 96px; padding: 6px; }
+  .marquee-name { font-size: 11px; }
+  .marquee-price { font-size: 12px; }
+}

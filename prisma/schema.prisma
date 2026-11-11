@@ -29,11 +29,28 @@ model Product {
   archived    Boolean  @default(false) // archive : retire de la boutique ET de la liste, mais restaurable
   featured    Boolean  @default(false)
   caisseRef   String? // lien avec le produit de la caisse Alimentation Tounkara (voir CaisseProduct.ref)
+  ratingAvg   Float    @default(0) // note moyenne des clients (1 a 5), 0 = pas encore notee
+  ratingCount Int      @default(0) // nombre de notes
   createdAt   DateTime @default(now())
 
   variants Variant[]
   items    OrderItem[]
   images   ProductImage[] // photos supplementaires (la principale reste imageData)
+  ratings  ProductRating[]
+}
+
+// Note donnee par un client (1 a 5 etoiles). Un vote par visiteur et par
+// produit (visiteur reconnu par un cookie anonyme) : revoter remplace la note.
+model ProductRating {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  voterId   String
+  stars     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([productId, voterId])
 }
 
 // Photos supplementaires d'un produit (galerie), dans l'ordre d'affichage.
