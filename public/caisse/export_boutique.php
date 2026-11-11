@@ -41,33 +41,143 @@ foreach ($eb_configs as $eb_f) {
 }
 
 $eb_db = null; // PDO ou mysqli
-foreach (['pdo', 'db', 'bdd', 'conn', 'connexion', 'connection', 'con', 'link', 'mysqli', 'dbh', 'database'] as $eb_v) {
-    if (isset($GLOBALS[$eb_v]) && ($GLOBALS[$eb_v] instanceof PDO || $GLOBALS[$eb_v] instanceof mysqli)) {
-        $eb_db = $GLOBALS[$eb_v];
-        break;
-    }
+$eb_found_files = [];
+foreach ($eb_configs as $eb_f) if (is_file(__DIR__ . '/' . $eb_f)) $eb_found_files[] = $eb_f;
+
+function eb_is_db($x)
+{
+    return $x instanceof PDO || $x instanceof mysqli;
 }
-if (!$eb_db) {
-    foreach ($GLOBALS as $eb_val) {
-        if ($eb_val instanceof PDO || $eb_val instanceof mysqli) { $eb_db = $eb_val; break; }
-    }
+
+// a) Une variable globale deja connectee ($pdo, $conn, $db…)
+foreach ($GLOBALS as $eb_val) {
+    if (eb_is_db($eb_val)) { $eb_db = $eb_val; break; }
 }
+
+// b) Une classe de connexion (ex. class Database { getConnection() })
+$eb_classes = [];
 if (!$eb_db) {
-    // Constantes de connexion definies par la caisse (DB_HOST, DB_NAME…)
-    $eb_host = defined('DB_HOST') ? DB_HOST : (defined('DB_SERVER') ? DB_SERVER : 'localhost');
-    $eb_name = defined('DB_NAME') ? DB_NAME : (defined('DB_DATABASE') ? DB_DATABASE : null);
-    $eb_user = defined('DB_USER') ? DB_USER : (defined('DB_USERNAME') ? DB_USERNAME : 'root');
-    $eb_pass = defined('DB_PASS') ? DB_PASS : (defined('DB_PASSWORD') ? DB_PASSWORD : '');
-    if ($eb_name) {
+    $eb_methods = ['getConnection', 'getconnection', 'connect', 'getPdo', 'getPDO', 'getDb', 'getDB', 'getConnexion', 'connexion', 'getInstance', 'instance', 'get'];
+    foreach (get_declared_classes() as $eb_c) {
         try {
-            $eb_db = new PDO("mysql:host=$eb_host;dbname=$eb_name;charset=utf8mb4", $eb_user, $eb_pass);
+            $rc = new ReflectionClass($eb_c);
+            if (!$rc->isUserDefined() || $rc->isAbstract()) continue;
+            $eb_classes[] = $eb_c;
+            foreach ($eb_methods as $m) {
+                if (!$rc->hasMethod($m)) continue;
+                $rm = $rc->getMethod($m);
+                if (!$rm->isPublic() || $rm->getNumberOfRequiredParameters() > 0) continue;
+                $res = null;
+                if ($rm->isStatic()) {
+                    $res = $rm->invoke(null);
+                } else {
+                    $ctor = $rc->getConstructor();
+                    if ($ctor && $ctor->getNumberOfRequiredParameters() > 0) continue;
+                    $res = $rm->invoke($rc->newInstance());
+                }
+                if (is_object($res) && !eb_is_db($res)) {
+                    // getInstance() renvoie parfois l'objet : on cherche la connexion dedans
+                    foreach (['getConnection', 'connect', 'getPdo', 'getDb'] as $m2) {
+                        if (method_exists($res, $m2)) { try { $r2 = $res->$m2(); if (eb_is_db($r2)) { $res = $r2; break; } } catch (Throwable $e) {} }
+                    }
+                    foreach (get_object_vars($res) as $pv) if (eb_is_db($pv)) { $res = $pv; break; }
+                }
+                if (eb_is_db($res)) { $eb_db = $res; break 2; }
+            }
         } catch (Throwable $e) {
-            $eb_db = null;
+            // on essaie la suivante
         }
     }
 }
+
+// c) Une fonction de connexion (ex. getDB(), connect())
 if (!$eb_db) {
-    eb_stop("Connexion a la base introuvable", "Ce fichier doit etre place dans le dossier de la caisse, a cote de <b>products.php</b> ou <b>index.php</b>.");
+    foreach (get_defined_functions()['user'] as $eb_fn) {
+        if (strpos($eb_fn, 'eb_') === 0 || !preg_match('/(db|pdo|conn|connect|connexion|database|bdd)/i', $eb_fn)) continue;
+        try {
+            $rf = new ReflectionFunction($eb_fn);
+            if ($rf->getNumberOfRequiredParameters() > 0) continue;
+            $res = $rf->invoke();
+            if (eb_is_db($res)) { $eb_db = $res; break; }
+        } catch (Throwable $e) {
+        }
+    }
+}
+
+// d) Identifiants ecrits dans les fichiers de configuration
+function eb_try_pdo($host, $name, $user, $pass)
+{
+    try {
+        $dsn = 'mysql:host=' . $host . ($name ? ';dbname=' . $name : '') . ';charset=utf8mb4';
+        $p = new PDO($dsn, $user, $pass, [PDO::ATTR_TIMEOUT => 3]);
+        $p->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        return $p;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+$eb_cred = ['host' => 'localhost', 'name' => null, 'user' => 'root', 'pass' => ''];
+if (!$eb_db) {
+    foreach (['DB_HOST' => 'host', 'DB_SERVER' => 'host', 'DB_NAME' => 'name', 'DB_DATABASE' => 'name', 'DB_USER' => 'user', 'DB_USERNAME' => 'user', 'DB_PASS' => 'pass', 'DB_PASSWORD' => 'pass'] as $k => $f) {
+        if (defined($k)) $eb_cred[$f] = constant($k);
+    }
+    foreach ($eb_found_files as $eb_f) {
+        $src = (string) @file_get_contents(__DIR__ . '/' . $eb_f);
+        $grab = function ($names) use ($src) {
+            foreach ($names as $n) {
+                // $host = 'x'; private $db_name = "x"; 'dbname' => 'x'; define('DB_NAME','x')
+                if (preg_match('/[\$\'"]' . $n . '[\'"]?\s*(?:=>|=|,)\s*[\'"]([^\'"]*)[\'"]/i', $src, $mm)) return $mm[1];
+            }
+            return null;
+        };
+        $v = $grab(['db_name', 'dbname', 'database', 'db', 'base', 'nom_base', 'DB_NAME', 'DB_DATABASE']);
+        if ($v !== null && $v !== '') $eb_cred['name'] = $v;
+        $v = $grab(['host', 'hostname', 'server', 'servername', 'serveur', 'DB_HOST', 'DB_SERVER']);
+        if ($v) $eb_cred['host'] = $v;
+        $v = $grab(['username', 'user', 'db_user', 'utilisateur', 'login', 'DB_USER', 'DB_USERNAME']);
+        if ($v) $eb_cred['user'] = $v;
+        $v = $grab(['password', 'pass', 'passwd', 'pwd', 'db_pass', 'mot_de_passe', 'motdepasse', 'DB_PASS', 'DB_PASSWORD']);
+        if ($v !== null) $eb_cred['pass'] = $v;
+        if (preg_match('/dbname=([A-Za-z0-9_\-]+)/', $src, $mm)) $eb_cred['name'] = $mm[1];
+        if (preg_match('/host=([A-Za-z0-9_.\-]+)/', $src, $mm)) $eb_cred['host'] = $mm[1];
+    }
+    if ($eb_cred['name']) $eb_db = eb_try_pdo($eb_cred['host'], $eb_cred['name'], $eb_cred['user'], $eb_cred['pass']);
+}
+
+// e) Dernier recours : connexion WAMP par defaut, et on cherche la base qui contient les produits.
+$eb_dbs_seen = [];
+if (!$eb_db) {
+    $server = eb_try_pdo($eb_cred['host'], null, $eb_cred['user'], $eb_cred['pass'])
+        ?: eb_try_pdo('localhost', null, 'root', '')
+        ?: eb_try_pdo('127.0.0.1', null, 'root', '');
+    if ($server) {
+        $best = null;
+        $bestScore = -1;
+        foreach ($server->query('SHOW DATABASES')->fetchAll(PDO::FETCH_COLUMN) as $dbn) {
+            if (in_array(strtolower($dbn), ['information_schema', 'mysql', 'performance_schema', 'sys', 'phpmyadmin'], true)) continue;
+            $eb_dbs_seen[] = $dbn;
+            $tabs = array_map('strtolower', $server->query('SHOW TABLES FROM `' . str_replace('`', '', $dbn) . '`')->fetchAll(PDO::FETCH_COLUMN));
+            $score = 0;
+            foreach (['products', 'produits', 'produit', 'articles'] as $t) if (in_array($t, $tabs, true)) $score += 10;
+            foreach (['sales', 'ventes', 'categories', 'users'] as $t) if (in_array($t, $tabs, true)) $score += 1;
+            if (preg_match('/alim|tounkara|gestion|caisse|stock/i', $dbn)) $score += 5;
+            if ($score >= 10 && $score > $bestScore) { $best = $dbn; $bestScore = $score; }
+        }
+        if ($best) {
+            $server->exec('USE `' . str_replace('`', '', $best) . '`');
+            $eb_db = $server;
+        }
+    }
+}
+
+if (!$eb_db) {
+    eb_stop(
+        "Connexion a la base introuvable",
+        "Fichiers de configuration trouves : <b>" . htmlspecialchars(implode(', ', $eb_found_files) ?: 'aucun') . "</b><br>" .
+        "Classes : <b>" . htmlspecialchars(implode(', ', array_slice($eb_classes, 0, 15)) ?: 'aucune') . "</b><br>" .
+        "Base cherchee : <b>" . htmlspecialchars((string) ($eb_cred['name'] ?? '?')) . "</b> sur <b>" . htmlspecialchars((string) $eb_cred['host']) . "</b>" .
+        ($eb_dbs_seen ? "<br>Bases visibles : <b>" . htmlspecialchars(implode(', ', $eb_dbs_seen)) . "</b>" : "")
+    );
 }
 
 // 2) Il faut etre connecte a la caisse.
