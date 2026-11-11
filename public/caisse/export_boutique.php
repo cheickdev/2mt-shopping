@@ -257,6 +257,24 @@ try {
     eb_stop("Lecture des produits impossible", htmlspecialchars($e->getMessage()));
 }
 
+// Codes-barres ranges dans une table a part (table `barcodes` : un produit peut en avoir plusieurs).
+$eb_codes = [];
+$eb_btable = eb_find($eb_tables, ['barcodes', 'codes_barres', 'code_barres']);
+if ($eb_btable) {
+    try {
+        foreach (eb_rows($eb_db, "SELECT * FROM `$eb_btable` ORDER BY id") as $b) {
+            $pid = (string) ($b['product_id'] ?? $b['produit_id'] ?? '');
+            $code = trim((string) ($b['barcode'] ?? $b['code'] ?? ''));
+            if ($pid === '' || $code === '') continue;
+            $type = strtoupper((string) ($b['barcode_type'] ?? 'UNIT'));
+            // On garde le 1er code « a l'unite » (sinon le 1er trouve).
+            if (!isset($eb_codes[$pid]) || ($eb_codes[$pid][1] !== 'UNIT' && $type === 'UNIT')) $eb_codes[$pid] = [$code, $type];
+        }
+    } catch (Throwable $e) {
+        $eb_codes = [];
+    }
+}
+
 $eb_products = [];
 foreach ($eb_list as $row) {
     $p = [];
@@ -267,6 +285,11 @@ foreach ($eb_list as $row) {
             $v = html_entity_decode($v, ENT_QUOTES, 'UTF-8');
         }
         $p[$k] = $v;
+    }
+    $pid = (string) ($row['id'] ?? $row['id_produit'] ?? $row['product_id'] ?? '');
+    if ($pid !== '') {
+        $p['ref'] = 'id-' . $pid; // numero du produit dans la caisse : ne change jamais
+        if (empty($p['barcode']) && isset($eb_codes[$pid])) $p['barcode'] = $eb_codes[$pid][0];
     }
     $catId = $row['category_id'] ?? $row['categorie_id'] ?? $row['id_categorie'] ?? $row['id_category'] ?? null;
     if ($catId !== null && isset($eb_cats[(string) $catId])) $p['category_name'] = $eb_cats[(string) $catId];

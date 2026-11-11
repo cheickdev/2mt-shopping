@@ -29,7 +29,7 @@ const KEYS = {
   category: ["category", "category_name", "categorie", "categorie_nom", "libelle_categorie", "nom_categorie", "famille"],
   categoryId: ["category_id", "categorie_id", "id_categorie", "id_category", "famille_id", "id_famille"],
   price: ["price", "selling_price", "prix", "prix_vente", "prix_de_vente", "prix_unitaire", "prix_vente_unitaire", "pu", "prix_detail"],
-  cost: ["cost", "purchase_price", "prix_achat", "prix_d_achat", "prix_achat_unitaire", "pa", "cout"],
+  cost: ["cost", "cost_price", "purchase_price", "prix_achat", "prix_d_achat", "prix_achat_unitaire", "pa", "cout"],
   stock: ["stock", "stock_quantity", "quantite", "quantity", "qte", "quantite_stock", "stock_actuel", "qte_stock", "quantite_en_stock"],
   unit: ["unit", "unite"],
   active: ["is_active", "active", "actif"],
@@ -87,19 +87,35 @@ function toRow(raw: Raw): CaisseRow | null {
   if (!name) return null;
   const barcode = text(pick(r, KEYS.barcode), 80).replace(/\s/g, "");
   const id = text(pick(r, KEYS.id), 40);
-  const ref = barcode || (id ? `id-${id}` : `nom-${normKey(name)}`.slice(0, 80));
+  // Reference stable : fournie par l'export de la caisse, sinon code-barres, sinon numero.
+  const ref = text(r.ref, 80) || barcode || (id ? `id-${id}` : `nom-${normKey(name)}`.slice(0, 80));
   const catId = text(pick(r, KEYS.categoryId), 20);
   return {
     ref,
     barcode,
     name,
-    category: text(pick(r, KEYS.category), 100) || (catId ? `Catégorie ${catId}` : ""),
+    category: text(pick(r, KEYS.category), 100) || (catId ? `Catégorie ${catId}` : "") || guessCategory(name),
     description: textKeepLines(pick(r, KEYS.description), 2000),
     price: money(pick(r, KEYS.price)),
     cost: money(pick(r, KEYS.cost)),
     stock: int(pick(r, KEYS.stock)),
     unit: text(pick(r, KEYS.unit), 30),
   };
+}
+
+// La caisse n'a pas de categories : on en propose une d'apres le nom du produit
+// (a verifier a l'import). L'ordre compte : la 1re regle qui correspond gagne.
+const CATEGORY_RULES: [string, RegExp][] = [
+  ["Électronique", /\b(adapt(er|ateur)|chargeur|charger|cable|câble|usb|ecouteur|écouteur|earphone|batterie|pile|piles|ampoule|lampe|torche|power bank|telephone|téléphone|radio)\b/i],
+  ["Entretien", /\b(javel|detergent|détergent|lessive|omo|ariel|savon en poudre|insecticide|moustiquaire|air ?fresh|desodorisant|désodorisant|eponge|éponge|serpilliere|balai)\b/i],
+  ["Cosmétiques", /\b(eau de cologne|cologne|sulfur|lotion|creme|crème|cream|pommade|vaseline|savon|soap|gel douche|shower|shampo\w*|apres[- ]shampo|déo|deo|deodorant|déodorant|parfum|perfume|eau de toilette|body|lait corporel|huile corporelle|dentifrice|colgate|signal|brosse a dent|coton|rasoir|gillette|lingette|couche|pampers|serviette hygien\w*|always|maquillage|vernis|mèche|meche|tissage|perruque|défrisant|defrisant)\b/i],
+  ["Boissons", /\b(energy|jus|juice|eau|water|soda|coca|fanta|sprite|pepsi|malta|bissap|gingembre|youki|boisson|drink|cafe|café|nescafe|nescafé|lipton|the|thé|tea|sirop|bière|biere|vimto)\b/i],
+  ["Alimentation", /\b(riz|sucre|huile|farine|pate|pâte|pates|pâtes|spaghetti|macaroni|tomate|concentre|concentré|mayonnaise|ketchup|moutarde|sel|maggi|jumbo|cube|sardine|thon|biscuit|chocolat|bonbon|chips|lait|nido|cereale|céréale|corn ?flakes|confiture|miel|beurre|fromage|yaourt|oeuf|œuf|pain|semoule|couscous|vermicelle|lentille|haricot|arachide|cacahuete|epice|épice|poivre|piment|vinaigre|sauce)\b/i],
+];
+export function guessCategory(name: string): string {
+  const plain = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  for (const [cat, re] of CATEGORY_RULES) if (re.test(plain)) return cat;
+  return "";
 }
 
 /** Decoupe un CSV (separateur ; , ou tabulation, guillemets "…" geres). */
