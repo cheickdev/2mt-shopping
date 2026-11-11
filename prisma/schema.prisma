@@ -150,3 +150,20 @@ model CaisseProduct {
   unit        String   @default("")
   updatedAt   DateTime @default(now())
 }
+
+// Produits reperes (ex. dans les tendances Google Shopping) que l'on pense
+// vendre bientot : liste de travail de l'admin, pas visible des clients.
+model UpcomingProduct {
+  id          String   @id @default(cuid())
+  name        String
+  imageUrl    String   @default("")
+  price       String   @default("") // prix constate, tel qu'affiche (ex. "12,99 €")
+  priceFcfa   Int? // conversion indicative en FCFA
+  source      String   @default("") // site marchand
+  link        String   @default("")
+  rating      Float?
+  ratingCount Int?
+  query       String   @default("") // recherche qui l'a fait trouver
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+}

@@ -50,6 +50,22 @@ export const SCHEMA_UPGRADES: string[] = [
     CONSTRAINT "ProductRating_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "ProductRating_productId_voterId_key" ON "ProductRating"("productId", "voterId")`,
+  // Produits a venir (reperes dans les tendances).
+  `CREATE TABLE IF NOT EXISTS "UpcomingProduct" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "imageUrl" TEXT NOT NULL DEFAULT '',
+    "price" TEXT NOT NULL DEFAULT '',
+    "priceFcfa" INTEGER,
+    "source" TEXT NOT NULL DEFAULT '',
+    "link" TEXT NOT NULL DEFAULT '',
+    "rating" DOUBLE PRECISION,
+    "ratingCount" INTEGER,
+    "query" TEXT NOT NULL DEFAULT '',
+    "note" TEXT NOT NULL DEFAULT '',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "UpcomingProduct_pkey" PRIMARY KEY ("id")
+  )`,
 ];
 
 function createClient() {

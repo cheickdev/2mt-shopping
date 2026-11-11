@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { parseFcfa, formatFcfa } from "@/lib/money";
+import { formatFcfa } from "@/lib/money";
 import { parseCaisseFile, type CaisseRow } from "@/lib/caisse-file";
-import GalleryEditor from "@/components/admin/GalleryEditor";
+import PrefilledProductForm from "@/components/admin/PrefilledProductForm";
 
 interface Result extends CaisseRow {
   onSite: string | null; // nom du produit deja cree sur le site, sinon null
@@ -89,8 +89,24 @@ export default function CaisseImport({ onClose }: { onClose: () => void }) {
 
   if (editing) {
     return (
-      <CaisseProductForm
-        row={editing}
+      <PrefilledProductForm
+        title={`🏪 Importer « ${editing.name} »`}
+        intro={
+          <>
+            Infos reprises de la caisse{editing.barcode ? ` (code-barres ${editing.barcode})` : ""}. Vérifiez-les, ajoutez des photos, puis créez le produit.
+            {editing.onSite && <strong> Attention : ce produit est déjà sur le site (« {editing.onSite} »).</strong>}
+          </>
+        }
+        initial={{
+          name: editing.name,
+          category: editing.category,
+          price: editing.price,
+          cost: editing.cost,
+          stock: Math.max(0, editing.stock),
+          description: editing.description,
+          unit: editing.unit,
+        }}
+        extra={{ caisseRef: editing.ref }}
         onCancel={() => setEditing(null)}
         onCreated={(name) => {
           setEditing(null);
@@ -183,110 +199,6 @@ export default function CaisseImport({ onClose }: { onClose: () => void }) {
           {results.length >= 40 && <p className="note">Seuls les 40 premiers résultats sont affichés : précisez la recherche.</p>}
         </>
       )}
-    </div>
-  );
-}
-
-// Fiche pre-remplie avec les infos de la caisse, a verifier avant creation.
-function CaisseProductForm({ row, onCancel, onCreated }: { row: Result; onCancel: () => void; onCreated: (name: string) => void }) {
-  const [name, setName] = useState(row.name);
-  const [category, setCategory] = useState(row.category);
-  const [price, setPrice] = useState(row.price ? String(row.price) : "");
-  const [cost, setCost] = useState(row.cost ? String(row.cost) : "");
-  const [stock, setStock] = useState(String(Math.max(0, row.stock)));
-  const [description, setDescription] = useState(row.description);
-  const [gallery, setGallery] = useState<string[]>([]);
-  const [active, setActive] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function create() {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/produits", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          category: category.trim(),
-          description: description.trim(),
-          price: parseFcfa(price),
-          cost: parseFcfa(cost),
-          stock: parseInt(stock, 10) || 0,
-          sizes: "",
-          gallery,
-          featured: false,
-          active,
-          caisseRef: row.ref,
-        }),
-      });
-      const d = await res.json();
-      if (!d.ok) setError(d.error ?? "Erreur lors de la création.");
-      else onCreated(name.trim());
-    } catch {
-      setError("Erreur réseau.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const ready = name.trim() && category.trim() && parseFcfa(price) > 0;
-
-  return (
-    <div className="card imp" style={{ padding: 16, marginBottom: 18 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-        <h3 style={{ margin: 0 }}>🏪 Importer « {row.name} »</h3>
-        <button className="btn ghost sm" onClick={onCancel}>← Retour</button>
-      </div>
-      <p className="note" style={{ margin: "6px 0 10px" }}>
-        Infos reprises de la caisse{row.barcode ? ` (code-barres ${row.barcode})` : ""}. Vérifiez-les, ajoutez des photos, puis créez le produit.
-        {row.onSite && <strong> Attention : ce produit est déjà sur le site (« {row.onSite} »).</strong>}
-      </p>
-      <div className="pe-form" style={{ borderTop: "none", paddingTop: 0 }}>
-        <div className="field pe-full">
-          <label>Nom</label>
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="field pe-full">
-          <label>Catégorie sur le site</label>
-          <input className="input" list="cat-suggestions" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex. Cosmétiques" />
-          <span className="note">Reprise de la caisse : choisissez une catégorie du site si elle est différente.</span>
-        </div>
-        <div className="field">
-          <label>Prix de vente (FCFA)</label>
-          <input className="input" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Ex. 3500" />
-        </div>
-        <div className="field">
-          <label>Coût d'achat (FCFA)</label>
-          <input className="input" inputMode="numeric" value={cost} onChange={(e) => setCost(e.target.value)} />
-        </div>
-        <div className="field">
-          <label>Stock{row.unit ? ` (${row.unit})` : ""}</label>
-          <input className="input" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} />
-        </div>
-        <div className="field pe-full">
-          <label>Photos ({gallery.length})</label>
-          <GalleryEditor value={gallery} onChange={setGallery} searchName={name} />
-        </div>
-        <div className="field pe-full">
-          <label>Description</label>
-          <textarea className="input" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Détails, contenance, conseils…" />
-        </div>
-        <label className="pe-check pe-full" style={{ margin: 0 }}>
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Visible tout de suite dans la boutique
-        </label>
-        {gallery.length === 0 && (
-          <p className="note pe-full" style={{ margin: 0 }}>
-            Pas encore de photo ? Décochez « Visible » : le produit restera caché jusqu'à ce que vous ajoutiez sa photo.
-          </p>
-        )}
-      </div>
-      {error && <div className="error" style={{ margin: "10px 0" }}>{error}</div>}
-      <button className="btn block" onClick={create} disabled={saving || !ready} style={{ marginTop: 12 }}>
-        {saving ? "Création…" : "Créer le produit sur le site"}
-      </button>
-      {!ready && <p className="note" style={{ margin: "6px 0 0", textAlign: "center" }}>Indiquez le nom, la catégorie et le prix.</p>}
     </div>
   );
 }

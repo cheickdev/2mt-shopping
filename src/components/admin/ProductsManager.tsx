@@ -7,6 +7,7 @@ import VariantsPanel, { VariantRow } from "@/components/admin/VariantsPanel";
 import { norm, queryWords } from "@/lib/search";
 import ImportProduct from "@/components/admin/ImportProduct";
 import CaisseImport from "@/components/admin/CaisseImport";
+import TrendsPanel from "@/components/admin/TrendsPanel";
 import GalleryEditor from "@/components/admin/GalleryEditor";
 
 export interface ProductRow {
@@ -215,7 +216,7 @@ function ProductEditor({ p }: { p: ProductRow }) {
   );
 }
 
-function CreateForm({ onImport, onCaisse }: { onImport: () => void; onCaisse: () => void }) {
+function CreateForm({ onImport, onCaisse, onTrends }: { onImport: () => void; onCaisse: () => void; onTrends: () => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", category: "", price: "", cost: "", stock: "", sizes: "", description: "", featured: false });
@@ -263,6 +264,7 @@ function CreateForm({ onImport, onCaisse }: { onImport: () => void; onCaisse: ()
     return (
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button className="btn" onClick={() => setOpen(true)}>+ Ajouter un produit</button>
+        <button className="btn ghost" onClick={onTrends}>🔥 Tendances</button>
         <button className="btn ghost" onClick={onCaisse}>🏪 Importer depuis la caisse</button>
         <button className="btn ghost" onClick={onImport}>⬇️ Importer depuis un lien</button>
       </div>
@@ -329,7 +331,7 @@ function CreateForm({ onImport, onCaisse }: { onImport: () => void; onCaisse: ()
 export default function ProductsManager({ products, categories }: { products: ProductRow[]; categories: string[] }) {
   const [view, setView] = useState<"actifs" | "archives">("actifs");
   const [q, setQ] = useState("");
-  const [importing, setImporting] = useState<null | "lien" | "caisse">(null);
+  const [importing, setImporting] = useState<null | "lien" | "caisse" | "tendances">(null);
   const active = products.filter((p) => !p.archived);
   const archived = products.filter((p) => p.archived);
   // Recherche dynamique : filtre pendant la saisie (nom, categorie, description, varietes).
@@ -360,8 +362,10 @@ export default function ProductsManager({ products, categories }: { products: Pr
           <ImportProduct onClose={() => setImporting(null)} />
         ) : importing === "caisse" ? (
           <CaisseImport onClose={() => setImporting(null)} />
+        ) : importing === "tendances" ? (
+          <TrendsPanel categories={categories} onClose={() => setImporting(null)} />
         ) : (
-          <CreateForm onImport={() => setImporting("lien")} onCaisse={() => setImporting("caisse")} />
+          <CreateForm onImport={() => setImporting("lien")} onCaisse={() => setImporting("caisse")} onTrends={() => setImporting("tendances")} />
         ))}
 
       <div className="pe-search">
