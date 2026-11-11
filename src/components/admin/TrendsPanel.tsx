@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { formatFcfa } from "@/lib/money";
 import type { TrendItem } from "@/lib/trends";
@@ -65,6 +66,7 @@ export default function TrendsPanel({ categories, onClose }: { categories: strin
   const [info, setInfo] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<Upcoming[]>([]);
   const [creating, setCreating] = useState<Upcoming | null>(null);
+  const [preview, setPreview] = useState<number | null>(null); // produit ouvert en grand
 
   async function loadUpcoming() {
     try {
@@ -304,27 +306,38 @@ export default function TrendsPanel({ categories, onClose }: { categories: strin
             <>
               <div className="tr-grid">
                 {results.map((r, i) => (
-                  <button key={i} type="button" className={`tr-item ${picked.has(i) ? "on" : ""}`} onClick={() => toggle(i)} aria-pressed={picked.has(i)}>
-                    <span className="tr-img">
-                      <img src={r.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                      {i < 3 && r.score > 0 && <span className="tr-rank">🔥 Top {i + 1}</span>}
-                      <span className="tr-check">{picked.has(i) ? "✓" : ""}</span>
-                    </span>
-                    <span className="tr-title">{r.title}</span>
-                    {r.rating != null && (
-                      <span className="tr-rating">
-                        ★ {r.rating.toFixed(1)}
-                        {r.ratingCount ? ` · ${nf.format(r.ratingCount)} avis` : ""}
+                  <div key={i} className={`tr-item ${picked.has(i) ? "on" : ""}`}>
+                    <button type="button" className="tr-pick" onClick={() => toggle(i)} aria-pressed={picked.has(i)} aria-label={`Sélectionner ${r.title}`}>
+                      <span className="tr-img">
+                        <SafeImg key={r.imageUrl} src={r.imageUrl} />
+                        {i < 3 && r.score > 0 && <span className="tr-rank">🔥 Top {i + 1}</span>}
+                        <span className="tr-check">{picked.has(i) ? "✓" : ""}</span>
                       </span>
-                    )}
-                    <span className="tr-price">
-                      {r.price}
-                      {r.priceFcfa && !/f\s?cfa/i.test(r.price) ? <span className="note"> ≈ {formatFcfa(r.priceFcfa)}</span> : null}
-                    </span>
-                    {r.source && <span className="note tr-src">{r.source}</span>}
-                  </button>
+                      <span className="tr-title">{r.title}</span>
+                      {r.rating != null && (
+                        <span className="tr-rating">
+                          ★ {r.rating.toFixed(1)}
+                          {r.ratingCount ? ` · ${nf.format(r.ratingCount)} avis` : ""}
+                        </span>
+                      )}
+                      <span className="tr-price">
+                        {r.price}
+                        {r.priceFcfa && !/f\s?cfa/i.test(r.price) ? <span className="note"> ≈ {formatFcfa(r.priceFcfa)}</span> : null}
+                      </span>
+                      {r.source && <span className="note tr-src">{r.source}</span>}
+                    </button>
+                    <button type="button" className="tr-view" onClick={() => setPreview(i)}>👁 Voir</button>
+                  </div>
                 ))}
               </div>
+              {preview !== null && results[preview] && (
+                <TrendPreview
+                  item={results[preview]}
+                  picked={picked.has(preview)}
+                  onToggle={() => toggle(preview)}
+                  onClose={() => setPreview(null)}
+                />
+              )}
               <div className="tr-bar">
                 <button className="btn block" onClick={addPicked} disabled={!picked.size || !!busy}>
                   {picked.size ? `📋 Ajouter ${picked.size} produit${picked.size > 1 ? "s" : ""} aux produits à venir` : "Touchez les produits qui vous intéressent"}
@@ -339,7 +352,7 @@ export default function TrendsPanel({ categories, onClose }: { categories: strin
         <div className="tr-list">
           {upcoming.map((u) => (
             <div key={u.id} className="tr-row">
-              <span className="tr-row-img">{u.imageUrl ? <img src={proxied(u.imageUrl)} alt="" loading="lazy" /> : null}</span>
+              <span className="tr-row-img">{u.imageUrl ? <SafeImg src={u.imageUrl} /> : null}</span>
               <div className="tr-row-info">
                 <strong>{u.name}</strong>
                 <span className="note">
@@ -368,5 +381,74 @@ export default function TrendsPanel({ categories, onClose }: { categories: strin
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Photo d'un autre site. On essaie dans l'ordre : `big` (grande taille, si
+ * fournie), la photo normale, puis la photo normale via le relais du serveur.
+ */
+function SafeImg({ src, big, alt = "" }: { src: string; big?: string; alt?: string }) {
+  const chain = [...(big && big !== src ? [big] : []), src, proxied(src)];
+  const [i, setI] = useState(0);
+  if (!src) return null;
+  return (
+    <img
+      src={chain[i]}
+      alt={alt}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setI((n) => Math.min(n + 1, chain.length - 1))}
+    />
+  );
+}
+
+/** CoinAfrique : la miniature « thumb_… » existe aussi en grande taille. */
+const bigImage = (u: string) => (/images\.coinafrique\.com\/thumb_/.test(u) ? u.replace("/thumb_", "/") : undefined);
+
+/** Fiche en grand d'un produit tendance. */
+function TrendPreview({ item, picked, onToggle, onClose }: { item: TrendItem; picked: boolean; onToggle: () => void; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    const o = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = o;
+    };
+  }, [onClose]);
+  const site = item.link ? new URL(item.link).hostname.replace(/^www\./, "") : "";
+  return createPortal(
+    <div className="tr-modal" role="dialog" aria-modal="true" aria-label={item.title} onClick={onClose}>
+      <div className="tr-modal-box" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="tr-modal-x" onClick={onClose} aria-label="Fermer">✕</button>
+        <div className="tr-modal-img">
+          <SafeImg src={item.imageUrl} big={bigImage(item.imageUrl)} alt={item.title} />
+        </div>
+        <h3 style={{ margin: "4px 0" }}>{item.title}</h3>
+        {item.rating != null && (
+          <div className="tr-rating" style={{ fontSize: 14 }}>
+            ★ {item.rating.toFixed(1)} / 5{item.ratingCount ? ` · ${nf.format(item.ratingCount)} avis` : ""}
+          </div>
+        )}
+        <div className="tr-price" style={{ fontSize: 20 }}>
+          {item.price || "Prix non indiqué"}
+          {item.priceFcfa && !/f\s?cfa/i.test(item.price) ? <span className="note"> ≈ {formatFcfa(item.priceFcfa)}</span> : null}
+        </div>
+        {item.source && <div className="note">{item.source}</div>}
+        <div className="tr-modal-actions">
+          <button type="button" className={`btn ${picked ? "ghost" : ""}`} onClick={onToggle}>
+            {picked ? "✓ Sélectionné (retirer)" : "✓ Sélectionner"}
+          </button>
+          {item.link && (
+            <a className="btn ghost" href={item.link} target="_blank" rel="noopener noreferrer">
+              Voir l'annonce{site ? ` sur ${site}` : ""} ↗
+            </a>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }

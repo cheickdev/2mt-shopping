@@ -762,3 +762,23 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
 .tr-terms-list { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); }
 .tr-term { padding: 5px 8px; column-gap: 6px; }
 .tr-term-name { font-size: 14px; }
+
+/* Tendances : carte = zone de selection + bouton « Voir » ; fiche en grand */
+.tr-item { padding: 0; overflow: hidden; }
+.tr-pick { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 8px 8px 4px; background: none; border: none; cursor: pointer; font: inherit; color: inherit; width: 100%; }
+.tr-view {
+  margin: 0 8px 8px; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2);
+  color: var(--fg); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.tr-view:hover { border-color: var(--accent); color: var(--accent); }
+.tr-modal { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 16px; animation: rise .2s ease both; }
+.tr-modal-box {
+  position: relative; width: min(100%, 440px); max-height: calc(100dvh - 32px); overflow-y: auto;
+  background: var(--surface); color: var(--fg); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow);
+}
+.tr-modal-x { position: absolute; right: 10px; top: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff; font-size: 15px; cursor: pointer; }
+.tr-modal-img { position: relative; aspect-ratio: 1; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.tr-modal-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.tr-modal-box h3 { overflow-wrap: anywhere; padding-right: 30px; }
+.tr-modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.tr-modal-actions .btn { white-space: normal; text-align: center; }
