@@ -553,3 +553,14 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
 }
 /* Photos sans fond (transparentes) : toujours sur fond blanc, meme en mode sombre. */
 .ci-thumb, .pe-thumb, .pe-photo img { background: #fff; }
+
+/* ---------- Import depuis la caisse Alimentation Tounkara (admin) ---------- */
+.caisse-help ol { margin: 0 0 8px; padding-left: 20px; font-size: 14px; }
+.caisse-help li { margin-bottom: 4px; }
+.caisse-help code { font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+.caisse-list { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; margin-top: 4px; }
+.caisse-item { display: flex; align-items: center; gap: 10px; justify-content: space-between; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+.caisse-item.done { opacity: .75; }
+.caisse-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.caisse-info strong { overflow-wrap: anywhere; }
+.caisse-info .pe-chip { align-self: flex-start; }

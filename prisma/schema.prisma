@@ -28,6 +28,7 @@ model Product {
   active      Boolean  @default(true) // visible dans la boutique
   archived    Boolean  @default(false) // archive : retire de la boutique ET de la liste, mais restaurable
   featured    Boolean  @default(false)
+  caisseRef   String? // lien avec le produit de la caisse Alimentation Tounkara (voir CaisseProduct.ref)
   createdAt   DateTime @default(now())
 
   variants Variant[]
@@ -115,4 +116,20 @@ model Setting {
   partnerName     String @default("Partenaire")
   ownerPassHash   String @default("") // hash scrypt "sel:hash" ; vide => ADMIN_PASSWORD
   partnerPassHash String @default("") // hash scrypt "sel:hash" ; vide => PARTNER_PASSWORD
+}
+
+// Produits de la caisse « Alimentation Tounkara » (application du magasin),
+// envoyes depuis un fichier d'export. Sert a importer des produits dans la
+// boutique sans les retaper. Chaque envoi remplace toute la liste.
+model CaisseProduct {
+  ref         String   @id // code-barres, sinon "id-<id de la caisse>"
+  barcode     String   @default("")
+  name        String
+  category    String   @default("")
+  description String   @default("")
+  price       Int      @default(0) // prix de vente en caisse (FCFA)
+  cost        Int      @default(0) // prix d'achat (FCFA)
+  stock       Int      @default(0)
+  unit        String   @default("")
+  updatedAt   DateTime @default(now())
 }

@@ -17,6 +17,7 @@ const schema = z.object({
   gallery: galleryField.optional(), // toutes les photos (la 1re = principale)
   featured: z.boolean().optional().default(false),
   active: z.boolean().optional().default(true),
+  caisseRef: z.string().max(80).nullable().optional(), // produit importe depuis la caisse
 });
 
 export async function POST(req: Request) {
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
       imageData: d.imageData ?? null,
       featured: d.featured ?? false,
       active: d.active ?? true,
+      caisseRef: d.caisseRef || null,
     },
   });
   if (d.gallery) await saveGallery(product.id, d.gallery);

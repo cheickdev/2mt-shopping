@@ -21,6 +21,21 @@ export const SCHEMA_UPGRADES: string[] = [
     CONSTRAINT "ProductImage_pkey" PRIMARY KEY ("id")
   )`,
   `CREATE INDEX IF NOT EXISTS "ProductImage_productId_idx" ON "ProductImage"("productId")`,
+  // Lien avec la caisse Alimentation Tounkara.
+  `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "caisseRef" TEXT`,
+  `CREATE TABLE IF NOT EXISTS "CaisseProduct" (
+    "ref" TEXT NOT NULL,
+    "barcode" TEXT NOT NULL DEFAULT '',
+    "name" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT '',
+    "description" TEXT NOT NULL DEFAULT '',
+    "price" INTEGER NOT NULL DEFAULT 0,
+    "cost" INTEGER NOT NULL DEFAULT 0,
+    "stock" INTEGER NOT NULL DEFAULT 0,
+    "unit" TEXT NOT NULL DEFAULT '',
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CaisseProduct_pkey" PRIMARY KEY ("ref")
+  )`,
 ];
 
 function createClient() {
