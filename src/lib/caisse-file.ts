@@ -22,15 +22,15 @@ type Raw = Record<string, unknown>;
 
 // Noms de colonnes possibles pour chaque information.
 const KEYS = {
-  id: ["id", "product_id"],
-  barcode: ["barcode", "code_barre", "codebarre", "code_barres", "ean", "code"],
-  name: ["name", "nom", "product_name", "designation", "libelle"],
-  description: ["description"],
-  category: ["category", "category_name", "categorie", "categorie_nom"],
-  categoryId: ["category_id"],
-  price: ["price", "selling_price", "prix", "prix_vente", "prix_de_vente"],
-  cost: ["cost", "purchase_price", "prix_achat", "prix_d_achat"],
-  stock: ["stock", "stock_quantity", "quantite", "quantity", "qte"],
+  id: ["id", "product_id", "id_produit", "produit_id", "idproduit", "id_article", "article_id"],
+  barcode: ["barcode", "code_barre", "codebarre", "code_barres", "codebarres", "ean", "code"],
+  name: ["name", "nom", "product_name", "designation", "libelle", "nom_produit", "libelle_produit", "designation_produit", "produit", "article"],
+  description: ["description", "details"],
+  category: ["category", "category_name", "categorie", "categorie_nom", "libelle_categorie", "nom_categorie", "famille"],
+  categoryId: ["category_id", "categorie_id", "id_categorie", "id_category", "famille_id", "id_famille"],
+  price: ["price", "selling_price", "prix", "prix_vente", "prix_de_vente", "prix_unitaire", "prix_vente_unitaire", "pu", "prix_detail"],
+  cost: ["cost", "purchase_price", "prix_achat", "prix_d_achat", "prix_achat_unitaire", "pa", "cout"],
+  stock: ["stock", "stock_quantity", "quantite", "quantity", "qte", "quantite_stock", "stock_actuel", "qte_stock", "quantite_en_stock"],
   unit: ["unit", "unite"],
   active: ["is_active", "active", "actif"],
 };
