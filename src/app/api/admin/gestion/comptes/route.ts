@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { isAdmin } from "@/lib/admin-auth";
+import { isOwner } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ const update = z.object({
 });
 
 export async function POST(req: Request) {
-  if (!(await isAdmin())) return NextResponse.json({ ok: false, error: "Non autorisé." }, { status: 401 });
+  if (!(await isOwner())) return NextResponse.json({ ok: false, error: "Réservé au propriétaire." }, { status: 403 });
   const parsed = create.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ?? "Compte invalide." }, { status: 400 });
   const exists = await prisma.finAccount.findFirst({ where: { name: { equals: parsed.data.name, mode: "insensitive" } } });
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  if (!(await isAdmin())) return NextResponse.json({ ok: false, error: "Non autorisé." }, { status: 401 });
+  if (!(await isOwner())) return NextResponse.json({ ok: false, error: "Réservé au propriétaire." }, { status: 403 });
   const parsed = update.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Modification invalide." }, { status: 400 });
   const { id, ...data } = parsed.data;

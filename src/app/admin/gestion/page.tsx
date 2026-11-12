@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminGestion() {
   const role = await currentRole();
   if (!role) redirect("/admin/login");
+  if (role !== "owner") redirect("/admin"); // reserve au proprietaire
   const settings = await getSettings();
   const userName = role === "owner" ? settings.ownerName : settings.partnerName;
 

@@ -19,16 +19,17 @@ const entry = z.object({
   description: z.string().max(500).optional().default(""),
 });
 
+// Reserve au proprietaire.
 async function who() {
   const role = await currentRole();
-  if (!role) return null;
+  if (role !== "owner") return null;
   const s = await getSettings();
   return role === "owner" ? s.ownerName : s.partnerName;
 }
 
 export async function POST(req: Request) {
   const by = await who();
-  if (!by) return NextResponse.json({ ok: false, error: "Non autorisé." }, { status: 401 });
+  if (!by) return NextResponse.json({ ok: false, error: "Réservé au propriétaire." }, { status: 403 });
   const parsed = entry.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ?? "Opération invalide." }, { status: 400 });
   const d = parsed.data;
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!(await who())) return NextResponse.json({ ok: false, error: "Non autorisé." }, { status: 401 });
+  if (!(await who())) return NextResponse.json({ ok: false, error: "Réservé au propriétaire." }, { status: 403 });
   const id = new URL(req.url).searchParams.get("id") ?? "";
   await prisma.finEntry.deleteMany({ where: { id } });
   return NextResponse.json({ ok: true });
