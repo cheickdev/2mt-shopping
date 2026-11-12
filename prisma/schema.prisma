@@ -168,3 +168,38 @@ model UpcomingProduct {
   note        String   @default("")
   createdAt   DateTime @default(now())
 }
+
+// ---------- Gestion (tresorerie, achats, depenses, emprunts) ----------
+// Un compte : soit de l'argent dont on dispose (TRESORERIE : caisse, Orange
+// Money, banque…), soit une personne/organisme qui nous prete (PRETEUR : son
+// solde = ce qu'on lui doit encore).
+model FinAccount {
+  id        String   @id @default(cuid())
+  name      String
+  kind      String // "TRESORERIE" | "PRETEUR"
+  note      String   @default("")
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Une operation. Sens selon le type :
+//  REVENU        : +montant sur accountId (tresorerie)
+//  ACHAT/DEPENSE : paye avec accountId (tresorerie -> diminue ; preteur -> dette augmente)
+//  EMPRUNT       : accountId = preteur (dette +), toAccountId = tresorerie (+)
+//  REMBOURSEMENT : accountId = tresorerie (-), toAccountId = preteur (dette -)
+//  TRANSFERT     : accountId -> toAccountId (deux tresoreries)
+model FinEntry {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  type        String
+  amount      Int // FCFA
+  accountId   String
+  toAccountId String?
+  payee       String   @default("") // a qui l'argent a ete remis / de qui il vient
+  category    String   @default("")
+  description String   @default("")
+  createdBy   String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+}

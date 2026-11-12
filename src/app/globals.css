@@ -782,3 +782,50 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
 .tr-modal-box h3 { overflow-wrap: anywhere; padding-right: 30px; }
 .tr-modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .tr-modal-actions .btn { white-space: normal; text-align: center; }
+
+/* ---------- Admin > Gestion ---------- */
+.ges-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.stat .v.neg, .ges-amt.neg, .ges-acc-bal.neg { color: var(--danger); }
+.stat .v.pos, .ges-amt.pos { color: var(--ok, #1a8f4e); }
+.ges-period { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.ges-period .input { width: auto; }
+.ges-accs { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.ges-acc {
+  display: flex; flex-direction: column; gap: 3px; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; transition: border-color .15s, transform .15s;
+}
+.ges-acc:hover { border-color: var(--accent); transform: translateY(-2px); }
+.ges-acc.lender { border-left: 4px solid var(--gold); }
+.ges-acc.static { padding: 0; border: none; background: none; cursor: default; transform: none; }
+.ges-acc.static > .ges-acc { width: 100%; }
+.ges-acc.archived { opacity: .55; }
+.ges-acc-name { font-weight: 700; overflow-wrap: anywhere; }
+.ges-acc-bal { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ges-acc-more { font-size: 12px; }
+.ges-acc .pill { align-self: flex-start; }
+.ges-acc-actions { display: flex; gap: 14px; padding: 6px 4px 0; }
+.linklike { background: none; border: none; padding: 0; font: inherit; font-size: 13px; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.linklike.danger { color: var(--danger); margin-left: 10px; }
+.ges-types, .ges-kind { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.ges-type {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; cursor: pointer; font: inherit; color: inherit;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px;
+}
+.ges-type.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.ges-type-icon { font-size: 22px; }
+.ges-type-label { font-weight: 700; font-size: 14px; }
+.ges-type-help { font-size: 12px; color: var(--muted); }
+.ges-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ges-chips .cat-chip { cursor: pointer; font: inherit; font-size: 13px; padding: 5px 11px; }
+.ges-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.ges-list { display: flex; flex-direction: column; gap: 8px; }
+.ges-row { display: flex; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.ges-row-icon { font-size: 22px; line-height: 1.2; }
+.ges-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.ges-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ges-row-top strong { overflow-wrap: anywhere; }
+.ges-amt { font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ges-desc { font-size: 14px; overflow-wrap: anywhere; }
+.ges-meta { display: flex; flex-wrap: wrap; align-items: center; }
+.ges-modal { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,.5); display: flex; justify-content: center; align-items: flex-start; padding: 24px 12px; overflow-y: auto; }
+.ges-modal-box { width: min(100%, 560px); background: var(--bg); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); }

@@ -52,6 +52,31 @@ export const SCHEMA_UPGRADES: string[] = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "ProductRating_productId_voterId_key" ON "ProductRating"("productId", "voterId")`,
   // Pixel Facebook (Meta).
   `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "metaPixelId" TEXT NOT NULL DEFAULT ''`,
+  // Gestion : comptes et operations.
+  `CREATE TABLE IF NOT EXISTS "FinAccount" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "note" TEXT NOT NULL DEFAULT '',
+    "archived" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FinAccount_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "FinEntry" (
+    "id" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "type" TEXT NOT NULL,
+    "amount" INTEGER NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "toAccountId" TEXT,
+    "payee" TEXT NOT NULL DEFAULT '',
+    "category" TEXT NOT NULL DEFAULT '',
+    "description" TEXT NOT NULL DEFAULT '',
+    "createdBy" TEXT NOT NULL DEFAULT '',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FinEntry_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "FinEntry_date_idx" ON "FinEntry"("date")`,
   // Produits a venir (reperes dans les tendances).
   `CREATE TABLE IF NOT EXISTS "UpcomingProduct" (
     "id" TEXT NOT NULL,
