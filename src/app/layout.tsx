@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import { getSettings } from "@/lib/settings";
 import { getMenuCategories, getMenuUser } from "@/lib/menu";
 import MetaPixel from "@/components/MetaPixel";
+import VisitTracker from "@/components/VisitTracker";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -63,6 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <MetaPixel id={settings.metaPixelId} />
           </Suspense>
         )}
+        <VisitTracker />
         <CartProvider>
           <Header shopName={settings.shopName} categories={categories} user={user} whatsapp={settings.whatsapp} />
           <main className="container">{children}</main>

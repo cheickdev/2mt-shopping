@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/admin/produits", label: "Produits", ownerOnly: false },
   { href: "/admin/categories", label: "Catégories", ownerOnly: false },
   { href: "/admin/commandes", label: "Commandes", ownerOnly: false },
+  { href: "/admin/statistiques", label: "Statistiques", ownerOnly: false },
   { href: "/admin/vendeurs", label: "Vendeurs", ownerOnly: true },
   { href: "/admin/gestion", label: "Gestion", ownerOnly: true },
   { href: "/admin/parametres", label: "Paramètres", ownerOnly: true },

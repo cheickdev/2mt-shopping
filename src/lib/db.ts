@@ -52,6 +52,24 @@ export const SCHEMA_UPGRADES: string[] = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "ProductRating_productId_voterId_key" ON "ProductRating"("productId", "voterId")`,
   // Pixel Facebook (Meta).
   `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "metaPixelId" TEXT NOT NULL DEFAULT ''`,
+  // Statistiques de visite.
+  `CREATE TABLE IF NOT EXISTS "SiteVisit" (
+    "day" TEXT NOT NULL,
+    "visitor" TEXT NOT NULL,
+    "views" INTEGER NOT NULL DEFAULT 1,
+    "source" TEXT NOT NULL DEFAULT '',
+    "mobile" BOOLEAN NOT NULL DEFAULT true,
+    "firstAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "SiteVisit_pkey" PRIMARY KEY ("day", "visitor")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "ProductVisit" (
+    "day" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "visitor" TEXT NOT NULL,
+    "views" INTEGER NOT NULL DEFAULT 1,
+    CONSTRAINT "ProductVisit_pkey" PRIMARY KEY ("day", "productId", "visitor")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "ProductVisit_productId_idx" ON "ProductVisit"("productId")`,
   // Espace vendeurs.
   `CREATE TABLE IF NOT EXISTS "Vendor" (
     "id" TEXT NOT NULL,

@@ -112,6 +112,7 @@ export default function SideMenu({
               <a className="drawer-link" href="/admin/produits">Produits</a>
               <a className="drawer-link" href="/admin/categories">Catégories</a>
               <a className="drawer-link" href="/admin/commandes">Commandes</a>
+              <a className="drawer-link" href="/admin/statistiques">Statistiques</a>
               {user.role === "owner" && <a className="drawer-link" href="/admin/vendeurs">Vendeurs</a>}
               {user.role === "owner" && <a className="drawer-link" href="/admin/gestion">Gestion</a>}
               {user.role === "owner" && <a className="drawer-link" href="/admin/parametres">Paramètres</a>}

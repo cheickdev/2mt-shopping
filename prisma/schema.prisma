@@ -223,3 +223,26 @@ model Vendor {
   createdAt   DateTime  @default(now())
   products    Product[]
 }
+
+// Statistiques de visite (anonymes) : 1 ligne par visiteur et par jour.
+model SiteVisit {
+  day     String // AAAA-MM-JJ (heure de Bamako = UTC)
+  visitor String // identifiant aleatoire anonyme (cookie)
+  views   Int      @default(1) // pages vues ce jour-la
+  source  String   @default("") // d'ou il vient : Facebook, Google, WhatsApp, Direct…
+  mobile  Boolean  @default(true)
+  firstAt DateTime @default(now())
+
+  @@id([day, visitor])
+}
+
+// Produits regardes : 1 ligne par jour, produit et visiteur.
+model ProductVisit {
+  day       String
+  productId String
+  visitor   String
+  views     Int    @default(1)
+
+  @@id([day, productId, visitor])
+  @@index([productId])
+}
