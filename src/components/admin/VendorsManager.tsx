@@ -76,7 +76,7 @@ export default function VendorsManager({ vendors, pending }: { vendors: VendorRo
         {created && (
           <div className="vs-msg" style={{ marginTop: 12 }}>
             ✅ Compte créé pour <b>{created.name}</b>. Envoyez-lui ces informations :
-            <pre className="vs-pre">{`Espace vendeur 2MT - Shopping\nLien : https://www.2mt.shop/vendeur/connexion\nNuméro : ${created.whatsapp}\nMot de passe : ${created.password}`}</pre>
+            <pre className="vs-pre">{`Espace vendeur 2MT - Shopping\nLien : https://www.2mt.shop/vendeur/connexion\nNuméro : ${created.whatsapp}\nMot de passe : ${created.password}\nConditions : https://www.2mt.shop/vendeur/conditions`}</pre>
           </div>
         )}
 

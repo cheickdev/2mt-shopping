@@ -53,6 +53,9 @@ export default function VendorLogin() {
       <p className="note" style={{ textAlign: "center", marginTop: 14 }}>
         Pas encore vendeur ? Contactez 2MT - Shopping sur WhatsApp pour ouvrir votre compte.
       </p>
+      <p className="note" style={{ textAlign: "center" }}>
+        <a href="/vendeur/conditions">Lire les conditions vendeurs</a>
+      </p>
     </div>
   );
 }

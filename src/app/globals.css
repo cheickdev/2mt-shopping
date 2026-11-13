@@ -866,3 +866,8 @@ h1, h2, .desc, .card-name, .card-cat, .card-variant, .ci-name, .ci-meta, .note,
 .vs-zoom img { max-width: 100%; max-height: 90vh; border-radius: 12px; background: #fff; }
 .vendor-hero-info { flex: 1 1 220px; min-width: 0; }
 @media (max-width: 560px) { .vendor-hero .btn.wa { width: 100%; text-align: center; } }
+.terms { max-width: 760px; margin: 24px auto 0; line-height: 1.6; }
+.terms h2 { font-size: 19px; margin: 26px 0 8px; }
+.terms ul { padding-left: 20px; margin: 0; }
+.terms li { margin-bottom: 6px; }
+.terms a, .vs-info a { color: var(--accent); }

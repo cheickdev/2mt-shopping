@@ -7,8 +7,8 @@ import { slugify, randomSuffix } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
 
-// Noms reserves (pages /vendeur/connexion et /vendeur/espace).
-const RESERVED = new Set(["connexion", "espace"]);
+// Noms reserves (pages /vendeur/connexion, /vendeur/espace, /vendeur/conditions).
+const RESERVED = new Set(["connexion", "espace", "conditions"]);
 
 const schema = z.object({
   name: z.string().trim().min(2, "Nom du vendeur requis.").max(60),

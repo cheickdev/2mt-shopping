@@ -79,6 +79,7 @@ export default function VendorSpace({
         <div>{freeUntil ? <>🎁 Gratuit jusqu'au <b>{freeUntil.toLocaleDateString("fr-FR")}</b></> : <>🎁 Gratuit</>}</div>
         <div>✅ Chaque nouveau produit est vérifié par 2MT avant d'apparaître sur le site.</div>
         <div>📲 Les clients vous contactent directement sur votre WhatsApp.</div>
+        <div>📄 <a href="/vendeur/conditions" target="_blank" rel="noopener noreferrer">Conditions vendeurs</a></div>
       </div>
 
       {msg && <div className="vs-msg">{msg}</div>}
@@ -216,6 +217,11 @@ function VendorProductForm({
       </div>
       {initial && initial.status === "APPROVED" && (
         <p className="note" style={{ margin: 0 }}>Changer seulement le prix ou la quantité ne demande pas de nouvelle validation.</p>
+      )}
+      {!initial && (
+        <p className="note" style={{ margin: 0 }}>
+          En envoyant ce produit, vous acceptez les <a href="/vendeur/conditions" target="_blank" rel="noopener noreferrer">conditions vendeurs</a>.
+        </p>
       )}
       {error && <div className="error">{error}</div>}
       <div style={{ display: "flex", gap: 10 }}>
