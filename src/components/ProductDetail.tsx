@@ -29,6 +29,7 @@ export interface ProductDetailData {
   ratingAvg: number;
   ratingCount: number;
   myRating: number | null; // note deja donnee par ce visiteur
+  vendor: { name: string; slug: string } | null; // produit d'un vendeur partenaire (hors panier 2MT)
 }
 
 export default function ProductDetail({
@@ -94,7 +95,7 @@ export default function ProductDetail({
   }
 
   const waText = encodeURIComponent(
-    `Bonjour 2MT - Shopping 👋\nJe veux commander :\n• ${product.name}${variantLabel ? " (" + variantLabel + ")" : ""} x${qty} — ${formatFcfa(
+    `Bonjour ${product.vendor ? product.vendor.name : "2MT - Shopping"} 👋\n${product.vendor ? "J'ai vu sur 2mt.shop. " : ""}Je veux commander :\n• ${product.name}${variantLabel ? " (" + variantLabel + ")" : ""} x${qty} — ${formatFcfa(
       product.price * qty
     )}\n\nMon nom : \nMon quartier : `
   );
@@ -129,6 +130,11 @@ export default function ProductDetail({
         <h1>{product.name}</h1>
         {selectedVariant && <div className="card-variant" style={{ fontSize: 14, marginTop: -8 }}>Variété : {selectedVariant.label}</div>}
         <div className="p-price">{formatFcfa(product.price)}</div>
+        {product.vendor && (
+          <div className="sold-by">
+            Vendu par <a href={`/vendeur/${product.vendor.slug}`}>{product.vendor.name}</a>
+          </div>
+        )}
         <RateProduct productId={product.id} avg={product.ratingAvg} count={product.ratingCount} mine={product.myRating} />
         {product.description && <p className="desc">{product.description}</p>}
 
@@ -182,6 +188,15 @@ export default function ProductDetail({
 
         {out ? (
           <div className="error">{hasVariants ? "Cette variété est en rupture." : "Cet article est en rupture de stock."}</div>
+        ) : product.vendor ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {waHref && (
+              <a className="btn wa block" href={waHref} target="_blank" rel="noopener noreferrer" onClick={() => track("Contact", { content_ids: [product.id] })}>
+                Commander sur WhatsApp — {formatFcfa(product.price * qty)}
+              </a>
+            )}
+            <p className="note" style={{ margin: 0 }}>Cet article est vendu et livré par {product.vendor.name}. Contactez directement le vendeur.</p>
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <button className="btn block" onClick={buyNow}>Commander — {formatFcfa(product.price * qty)}</button>
@@ -192,7 +207,7 @@ export default function ProductDetail({
           </div>
         )}
 
-        <p className="note">🛵 Livraison à Bamako · 💵 Paiement à la livraison · Frais : {deliveryFee > 0 ? formatFcfa(deliveryFee) : "selon la distance, calculés au panier"}</p>
+        {!product.vendor && <p className="note">🛵 Livraison à Bamako · 💵 Paiement à la livraison · Frais : {deliveryFee > 0 ? formatFcfa(deliveryFee) : "selon la distance, calculés au panier"}</p>}
       </div>
     </div>
   );

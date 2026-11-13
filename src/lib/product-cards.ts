@@ -14,6 +14,7 @@ export const cardSelect = {
   ratingAvg: true,
   ratingCount: true,
   variants: { where: { active: true }, select: { id: true, stock: true } },
+  vendor: { select: { name: true, slug: true, whatsapp: true } },
 } as const;
 
 type CardRow = {
@@ -28,6 +29,7 @@ type CardRow = {
   ratingAvg: number;
   ratingCount: number;
   variants: { id: string; stock: number }[];
+  vendor?: { name: string; slug: string; whatsapp: string } | null;
 };
 
 /** Empreinte courte de la photo de chaque produit (change quand la photo change). */
@@ -57,6 +59,7 @@ export function toCard(p: CardRow, versions: Map<string, string>, extra: Partial
     needsChoice: p.variants.length > 0 || p.sizes.split(",").some((s) => s.trim()),
     ratingAvg: p.ratingAvg,
     ratingCount: p.ratingCount,
+    vendor: p.vendor ?? null,
     ...extra,
   };
 }

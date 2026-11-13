@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
   // On recalcule tout depuis la base (on ne fait jamais confiance aux prix du navigateur).
   const ids = [...new Set(data.items.map((i) => i.productId))];
-  const products = await prisma.product.findMany({ where: { id: { in: ids }, active: true } });
+  const products = await prisma.product.findMany({ where: { id: { in: ids }, active: true, archived: false, status: "APPROVED", vendorId: null } });
   const byId = new Map(products.map((p) => [p.id, p]));
 
   const variantIds = data.items.map((i) => i.variantId).filter((v): v is string => !!v);

@@ -31,6 +31,10 @@ model Product {
   caisseRef   String? // lien avec le produit de la caisse Alimentation Tounkara (voir CaisseProduct.ref)
   ratingAvg   Float    @default(0) // note moyenne des clients (1 a 5), 0 = pas encore notee
   ratingCount Int      @default(0) // nombre de notes
+  vendorId    String? // null = produit de 2MT ; sinon produit d'un vendeur partenaire
+  vendor      Vendor?  @relation(fields: [vendorId], references: [id])
+  status      String   @default("APPROVED") // APPROVED | PENDING (a valider) | REJECTED
+  rejectReason String  @default("")
   createdAt   DateTime @default(now())
 
   variants Variant[]
@@ -202,4 +206,20 @@ model FinEntry {
   createdAt   DateTime @default(now())
 
   @@index([date])
+}
+
+// Vendeur partenaire (espace vendeur). Cree par le proprietaire, sur invitation.
+// Ses produits affichent « Vendu par … » et son WhatsApp (pas le panier 2MT).
+model Vendor {
+  id          String    @id @default(cuid())
+  slug        String    @unique // adresse publique : /vendeur/<slug>
+  name        String
+  whatsapp    String // format international, ex. 22376000000
+  description String    @default("")
+  passHash    String // mot de passe de l'espace vendeur (scrypt)
+  active      Boolean   @default(true) // false = suspendu : ses produits disparaissent
+  maxProducts Int       @default(20)
+  freeUntil   DateTime? // gratuit jusqu'a cette date (information)
+  createdAt   DateTime  @default(now())
+  products    Product[]
 }

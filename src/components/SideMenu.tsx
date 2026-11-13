@@ -95,6 +95,7 @@ export default function SideMenu({
                 Nous contacter sur WhatsApp
               </a>
             )}
+            <a className="drawer-link" href="/vendeur/connexion">Espace vendeur</a>
             <p className="note drawer-pad">Livraison à Bamako · Paiement à la livraison</p>
           </section>
 
@@ -111,6 +112,7 @@ export default function SideMenu({
               <a className="drawer-link" href="/admin/produits">Produits</a>
               <a className="drawer-link" href="/admin/categories">Catégories</a>
               <a className="drawer-link" href="/admin/commandes">Commandes</a>
+              {user.role === "owner" && <a className="drawer-link" href="/admin/vendeurs">Vendeurs</a>}
               {user.role === "owner" && <a className="drawer-link" href="/admin/gestion">Gestion</a>}
               {user.role === "owner" && <a className="drawer-link" href="/admin/parametres">Paramètres</a>}
               <a className="drawer-link" href="/admin/compte">Mon compte ({user.name})</a>

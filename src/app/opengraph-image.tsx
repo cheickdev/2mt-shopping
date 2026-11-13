@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { publicProductWhere } from "@/lib/vendors";
 import { prisma } from "@/lib/db";
 import { ACCENT, Brand, OG_SIZE, photoForOg } from "@/lib/og";
 
@@ -13,7 +14,7 @@ export const revalidate = 3600;
 export default async function Image() {
   const rows = await prisma.product
     .findMany({
-      where: { active: true, archived: false, imageData: { not: null } },
+      where: { ...publicProductWhere, vendorId: null, imageData: { not: null } },
       orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
       take: 3,
       select: { imageData: true },

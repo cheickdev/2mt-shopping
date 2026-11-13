@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { publicProductWhere } from "@/lib/vendors";
 import { prisma } from "@/lib/db";
 import { getCategories } from "@/lib/categories";
 
@@ -8,7 +9,7 @@ const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.2mt.shop").replac
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [products, categories] = await Promise.all([
-    prisma.product.findMany({ where: { active: true, archived: false }, select: { slug: true, createdAt: true } }).catch(() => []),
+    prisma.product.findMany({ where: publicProductWhere, select: { slug: true, createdAt: true } }).catch(() => []),
     getCategories(),
   ]);
   return [

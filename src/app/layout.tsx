@@ -68,6 +68,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <main className="container">{children}</main>
           <footer className="footer">
             {settings.shopName} — Bamako. Commandez en ligne, payez à la livraison.
+            {" · "}
+            <a href="/vendeur/connexion" style={{ color: "inherit" }}>Espace vendeur</a>
           </footer>
         </CartProvider>
       </body>

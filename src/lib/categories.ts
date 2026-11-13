@@ -1,3 +1,4 @@
+import { publicProductWhere } from "@/lib/vendors";
 import { prisma } from "@/lib/db";
 
 // Liste des categories reellement presentes dans la boutique (produits actifs).
@@ -5,7 +6,7 @@ import { prisma } from "@/lib/db";
 export async function getCategories(): Promise<string[]> {
   try {
     const rows = await prisma.product.findMany({
-      where: { active: true, archived: false },
+      where: publicProductWhere,
       select: { category: true },
       distinct: ["category"],
       orderBy: { category: "asc" },

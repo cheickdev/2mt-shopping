@@ -52,6 +52,25 @@ export const SCHEMA_UPGRADES: string[] = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "ProductRating_productId_voterId_key" ON "ProductRating"("productId", "voterId")`,
   // Pixel Facebook (Meta).
   `ALTER TABLE "Setting" ADD COLUMN IF NOT EXISTS "metaPixelId" TEXT NOT NULL DEFAULT ''`,
+  // Espace vendeurs.
+  `CREATE TABLE IF NOT EXISTS "Vendor" (
+    "id" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "whatsapp" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "passHash" TEXT NOT NULL,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "maxProducts" INTEGER NOT NULL DEFAULT 20,
+    "freeUntil" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Vendor_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Vendor_slug_key" ON "Vendor"("slug")`,
+  `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "vendorId" TEXT`,
+  `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'APPROVED'`,
+  `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "rejectReason" TEXT NOT NULL DEFAULT ''`,
+  `CREATE INDEX IF NOT EXISTS "Product_vendorId_idx" ON "Product"("vendorId")`,
   // Gestion : comptes et operations.
   `CREATE TABLE IF NOT EXISTS "FinAccount" (
     "id" TEXT NOT NULL,

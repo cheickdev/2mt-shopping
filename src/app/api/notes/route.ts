@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import { publicProductWhere } from "@/lib/vendors";
 import { prisma } from "@/lib/db";
 import { VOTER_COOKIE } from "@/lib/ratings";
 
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Note invalide." }, { status: 400 });
   const { productId, stars } = parsed.data;
 
-  const product = await prisma.product.findFirst({ where: { id: productId, active: true, archived: false }, select: { id: true } });
+  const product = await prisma.product.findFirst({ where: { ...publicProductWhere, id: productId }, select: { id: true } });
   if (!product) return NextResponse.json({ ok: false, error: "Produit introuvable." }, { status: 404 });
 
   const store = await cookies();

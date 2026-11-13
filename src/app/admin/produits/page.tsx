@@ -15,6 +15,7 @@ export default async function AdminProducts() {
 
   const [products, categories, settings] = await Promise.all([
     prisma.product.findMany({
+      where: { vendorId: null }, // les produits des vendeurs se gerent dans « Vendeurs »
       orderBy: [{ archived: "asc" }, { createdAt: "desc" }],
       include: { variants: { orderBy: { position: "asc" } }, images: { orderBy: { position: "asc" } } },
     }),

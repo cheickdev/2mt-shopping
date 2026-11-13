@@ -15,7 +15,7 @@ import { prisma } from "@/lib/db";
 export const ADMIN_COOKIE = "admin_session";
 export type Role = "owner" | "staff";
 
-function sessionSecret(): string {
+export function sessionSecret(): string {
   return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "dev-insecure-secret";
 }
 
@@ -35,14 +35,14 @@ export function hashPassword(pw: string): string {
   const h = crypto.scryptSync(pw, salt, 32).toString("hex");
   return salt + ":" + h;
 }
-function verifyHash(pw: string, stored: string): boolean {
+export function verifyHash(pw: string, stored: string): boolean {
   const [salt, h] = stored.split(":");
   if (!salt || !h) return false;
   const calc = crypto.scryptSync(pw, salt, 32).toString("hex");
   return safeEqual(calc, h);
 }
 
-function safeEqual(a: string, b: string): boolean {
+export function safeEqual(a: string, b: string): boolean {
   const ba = Buffer.from(a);
   const bb = Buffer.from(b);
   return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);

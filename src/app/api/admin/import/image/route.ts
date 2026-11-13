@@ -1,4 +1,5 @@
 import { isAdmin } from "@/lib/admin-auth";
+import { currentVendor } from "@/lib/vendors";
 import { safeFetch } from "@/lib/safe-fetch";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 // images d'un autre site (securite des navigateurs), on les passe donc par ici
 // pour les redimensionner avant de les enregistrer.
 export async function GET(req: Request) {
-  if (!(await isAdmin())) return new Response("Non autorisé.", { status: 401 });
+  if (!(await isAdmin()) && !(await currentVendor())) return new Response("Non autorisé.", { status: 401 });
   const url = new URL(req.url).searchParams.get("url");
   if (!url) return new Response("Lien manquant.", { status: 400 });
   try {

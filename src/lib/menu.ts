@@ -1,3 +1,4 @@
+import { publicProductWhere } from "@/lib/vendors";
 import { prisma } from "@/lib/db";
 import { currentRole } from "@/lib/admin-auth";
 import type { ShopSettings } from "@/lib/settings";
@@ -21,7 +22,7 @@ const PRODUCTS_PER_CATEGORY = 8;
 export async function getMenuCategories(): Promise<MenuCategory[]> {
   try {
     const rows = await prisma.product.findMany({
-      where: { active: true, archived: false },
+      where: publicProductWhere,
       select: { name: true, slug: true, category: true },
       orderBy: [{ category: "asc" }, { featured: "desc" }, { createdAt: "desc" }],
     });

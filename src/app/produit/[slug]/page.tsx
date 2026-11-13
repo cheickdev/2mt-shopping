@@ -7,12 +7,13 @@ import { getSettings } from "@/lib/settings";
 import { formatFcfa } from "@/lib/money";
 import { galleryOf } from "@/lib/gallery";
 import ProductDetail, { ProductDetailData } from "@/components/ProductDetail";
+import { publicProductWhere } from "@/lib/vendors";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const p = await prisma.product.findUnique({ where: { slug } });
+  const p = await prisma.product.findFirst({ where: { ...publicProductWhere, slug } });
   if (!p) return { title: "Article introuvable" };
   const description = `${formatFcfa(p.price)} · Livraison à Bamako, paiement à la livraison.${p.description ? " " + p.description.slice(0, 150) : ""}`;
   // L'image de partage vient de ./opengraph-image.tsx (photo + nom + prix).
@@ -38,14 +39,15 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
   const { v, opt } = await searchParams;
-  const p = await prisma.product.findUnique({
-    where: { slug },
+  const p = await prisma.product.findFirst({
+    where: { ...publicProductWhere, slug },
     include: {
+      vendor: { select: { name: true, slug: true, whatsapp: true } },
       variants: { where: { active: true }, orderBy: { position: "asc" } },
       images: { orderBy: { position: "asc" } },
     },
   });
-  if (!p || !p.active || p.archived) notFound();
+  if (!p) notFound();
 
   const settings = await getSettings();
   const voterId = (await cookies()).get(VOTER_COOKIE)?.value;
@@ -67,6 +69,7 @@ export default async function ProductPage({
     ratingAvg: p.ratingAvg,
     ratingCount: p.ratingCount,
     myRating: mine?.stars ?? null,
+    vendor: p.vendor ? { name: p.vendor.name, slug: p.vendor.slug } : null,
   };
 
   return (
@@ -85,7 +88,7 @@ export default async function ProductPage({
         product={product}
         initialVariantId={product.variants.some((x) => x.id === v) ? v : undefined}
         initialOption={opt && product.sizes.includes(opt) ? opt : undefined}
-        whatsapp={settings.whatsapp}
+        whatsapp={p.vendor ? p.vendor.whatsapp : settings.whatsapp}
         deliveryFee={settings.shopLat != null ? 0 : settings.deliveryFee}
       />
     </>

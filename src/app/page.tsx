@@ -1,3 +1,4 @@
+import { publicProductWhere } from "@/lib/vendors";
 import { prisma } from "@/lib/db";
 import { getCategories } from "@/lib/categories";
 import ProductCard, { ProductCardData } from "@/components/ProductCard";
@@ -8,7 +9,7 @@ import { cardSelect, imageUrl, imageVersions, toCard } from "@/lib/product-cards
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 24; // articles par page (categories, « tous les articles »)
-const visible = { active: true, archived: false } as const;
+const visible = publicProductWhere; // produits visibles des clients (valides, vendeurs actifs)
 
 type SP = { cat?: string; q?: string; tous?: string; page?: string };
 

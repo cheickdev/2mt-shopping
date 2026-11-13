@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publicProductWhere } from "@/lib/vendors";
 import { prisma } from "@/lib/db";
 import { formatFcfa } from "@/lib/money";
 import { matchProduct, norm, productHref, queryWords, type Suggestion } from "@/lib/search";
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
   let products;
   try {
     products = await prisma.product.findMany({
-      where: { active: true, archived: false },
+      where: publicProductWhere,
       select: {
         slug: true,
         name: true,

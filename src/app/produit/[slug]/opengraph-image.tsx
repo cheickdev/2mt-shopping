@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/db";
+import { publicProductWhere } from "@/lib/vendors";
 import { formatFcfa } from "@/lib/money";
 import { ACCENT, Brand, OG_SIZE, photoForOg } from "@/lib/og";
 
@@ -13,7 +14,7 @@ export const alt = "Produit 2MT - Shopping";
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = await prisma.product
-    .findUnique({ where: { slug }, select: { name: true, price: true, category: true, imageData: true } })
+    .findFirst({ where: { ...publicProductWhere, slug }, select: { name: true, price: true, category: true, imageData: true } })
     .catch(() => null);
   const photo = await photoForOg(p?.imageData);
   const name = p?.name ?? "2MT - Shopping";
