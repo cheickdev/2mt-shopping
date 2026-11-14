@@ -119,7 +119,7 @@ export default function VendorsManager({ vendors, pending }: { vendors: VendorRo
                     <div className="note" style={{ color: "var(--ok)" }}>🔗 Relié à Simple Pos : ses produits et son stock arrivent tout seuls.</div>
                   ) : v.linkCode ? (
                     <div className="note">
-                      Code Simple Pos à lui envoyer : <b style={{ fontFamily: "monospace", fontSize: 15 }}>{v.linkCode}</b> (Simple Pos → Paramètres → Vendre sur 2MT)
+                      Code Simple Pos à lui envoyer : <b style={{ fontFamily: "monospace", fontSize: 15 }}>{v.linkCode}</b> (sur <a href="https://pos.2mt.shop" target="_blank" rel="noopener noreferrer">pos.2mt.shop</a> → Paramètres → Vendre sur 2MT)
                     </div>
                   ) : null}
                 </div>
