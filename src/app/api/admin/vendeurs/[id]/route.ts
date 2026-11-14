@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { isOwner } from "@/lib/admin-auth";
 import { hashVendorPassword, normalizeWhatsapp } from "@/lib/vendors";
+import { newLinkCode } from "@/lib/pos-link";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ const schema = z.object({
   maxProducts: z.number().int().min(1).max(500).optional(),
   freeUntil: z.string().nullable().optional(),
   active: z.boolean().optional(), // false = suspendu : tous ses produits disparaissent du site
+  newLinkCode: z.boolean().optional(), // genere un code pour relier sa boutique Simple Pos
+  unlinkPos: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +34,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const whatsapp = d.whatsapp ? normalizeWhatsapp(d.whatsapp) : undefined;
   if (whatsapp && (await prisma.vendor.findFirst({ where: { whatsapp, id: { not: id } } }))) {
     return NextResponse.json({ ok: false, error: "Un autre vendeur a déjà ce numéro." }, { status: 400 });
+  }
+  if (d.newLinkCode) {
+    const code = newLinkCode();
+    await prisma.vendor.update({ where: { id }, data: { linkCode: code } });
+    return NextResponse.json({ ok: true, linkCode: code });
+  }
+  if (d.unlinkPos) {
+    await prisma.$transaction([
+      prisma.product.updateMany({ where: { vendorId: id, externalRef: { not: null } }, data: { active: false } }),
+      prisma.vendor.update({ where: { id }, data: { posShopId: null, linkCode: null } }),
+    ]);
+    return NextResponse.json({ ok: true });
   }
   await prisma.vendor.update({
     where: { id },

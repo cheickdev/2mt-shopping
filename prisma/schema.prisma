@@ -35,6 +35,7 @@ model Product {
   vendor      Vendor?  @relation(fields: [vendorId], references: [id])
   status      String   @default("APPROVED") // APPROVED | PENDING (a valider) | REJECTED
   rejectReason String  @default("")
+  externalRef String? // identifiant du produit dans Simple Pos (produits synchronises)
   createdAt   DateTime @default(now())
 
   variants Variant[]
@@ -220,6 +221,8 @@ model Vendor {
   active      Boolean   @default(true) // false = suspendu : ses produits disparaissent
   maxProducts Int       @default(20)
   freeUntil   DateTime? // gratuit jusqu'a cette date (information)
+  posShopId   String?   @unique // boutique Simple Pos reliee (ses produits arrivent tout seuls)
+  linkCode    String? // code a usage unique pour relier Simple Pos
   createdAt   DateTime  @default(now())
   products    Product[]
 }

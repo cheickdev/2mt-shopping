@@ -13,6 +13,8 @@ export interface VendorRow {
   active: boolean;
   maxProducts: number;
   freeUntil: string; // AAAA-MM-JJ ou ""
+  posLinked: boolean; // relie a Simple Pos
+  linkCode: string; // code en attente de liaison
   total: number;
   online: number;
   pending: number;
@@ -113,10 +115,41 @@ export default function VendorsManager({ vendors, pending }: { vendors: VendorRo
                     WhatsApp +{v.whatsapp} · {v.online} en ligne · {v.pending} en attente · {v.total}/{v.maxProducts} produits
                   </div>
                   <div className="note">{v.freeUntil ? `Gratuit jusqu'au ${new Date(v.freeUntil).toLocaleDateString("fr-FR")}` : "Gratuit (sans date de fin)"}</div>
+                  {v.posLinked ? (
+                    <div className="note" style={{ color: "var(--ok)" }}>🔗 Relié à Simple Pos : ses produits et son stock arrivent tout seuls.</div>
+                  ) : v.linkCode ? (
+                    <div className="note">
+                      Code Simple Pos à lui envoyer : <b style={{ fontFamily: "monospace", fontSize: 15 }}>{v.linkCode}</b> (Simple Pos → Paramètres → Vendre sur 2MT)
+                    </div>
+                  ) : null}
                 </div>
                 <div className="vs-actions">
                   <a className="btn ghost sm" href={`/vendeur/${v.slug}`} target="_blank" rel="noopener noreferrer">Sa boutique</a>
                   <button className="btn ghost sm" onClick={() => setEditing(v.id)}>Modifier</button>
+                  {v.posLinked ? (
+                    <button
+                      className="btn ghost sm"
+                      onClick={async () => {
+                        if (!confirm(`Délier ${v.name} de Simple Pos ? Ses produits venus de Simple Pos seront retirés du site.`)) return;
+                        const err = await call(`/api/admin/vendeurs/${v.id}`, "PATCH", { unlinkPos: true });
+                        if (err) alert(err);
+                        router.refresh();
+                      }}
+                    >
+                      Délier Simple Pos
+                    </button>
+                  ) : (
+                    <button
+                      className="btn ghost sm"
+                      onClick={async () => {
+                        const err = await call(`/api/admin/vendeurs/${v.id}`, "PATCH", { newLinkCode: true });
+                        if (err) alert(err);
+                        router.refresh();
+                      }}
+                    >
+                      {v.linkCode ? "Nouveau code Simple Pos" : "Code Simple Pos"}
+                    </button>
+                  )}
                   <button
                     className={`btn ghost sm ${v.active ? "danger" : ""}`}
                     onClick={async () => {

@@ -39,6 +39,8 @@ export default async function AdminVendors() {
     active: v.active,
     maxProducts: v.maxProducts,
     freeUntil: v.freeUntil ? v.freeUntil.toISOString().slice(0, 10) : "",
+    posLinked: !!v.posShopId,
+    linkCode: v.linkCode ?? "",
     total: count(v.id),
     online: count(v.id, "APPROVED"),
     pending: count(v.id, "PENDING"),

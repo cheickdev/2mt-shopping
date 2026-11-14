@@ -89,6 +89,12 @@ export const SCHEMA_UPGRADES: string[] = [
   `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'APPROVED'`,
   `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "rejectReason" TEXT NOT NULL DEFAULT ''`,
   `CREATE INDEX IF NOT EXISTS "Product_vendorId_idx" ON "Product"("vendorId")`,
+  // Lien avec Simple Pos (gestion de stock des vendeurs).
+  `ALTER TABLE "Vendor" ADD COLUMN IF NOT EXISTS "posShopId" TEXT`,
+  `ALTER TABLE "Vendor" ADD COLUMN IF NOT EXISTS "linkCode" TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Vendor_posShopId_key" ON "Vendor"("posShopId")`,
+  `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "externalRef" TEXT`,
+  `CREATE INDEX IF NOT EXISTS "Product_externalRef_idx" ON "Product"("externalRef")`,
   // Gestion : comptes et operations.
   `CREATE TABLE IF NOT EXISTS "FinAccount" (
     "id" TEXT NOT NULL,
