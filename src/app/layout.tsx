@@ -72,6 +72,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {settings.shopName} — Bamako. Commandez en ligne, payez à la livraison.
             {" · "}
             <a href="/vendeur/connexion" style={{ color: "inherit" }}>Espace vendeur</a>
+            <br />
+            <span style={{ fontSize: 12, opacity: 0.8 }}>© {new Date().getFullYear()} 2MT Shopping · Un produit <a href="https://citec.app" target="_blank" rel="noopener" style={{ color: "inherit", fontWeight: 700 }}>CITEC</a></span>
           </footer>
         </CartProvider>
       </body>
