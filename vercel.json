@@ -13,5 +13,10 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "claude/focused-ptolemy-vtrvaz": false
+    }
+  }
 }
